@@ -7,7 +7,7 @@ import { lastEntryFor, bestWeightFor, buildSets, effectiveRoutineId, workoutVolu
 import { beep, vibrate } from './lib/sound.js'
 import { t, instrFor, getLang, INSTR_LANGS } from './lib/i18n.js'
 import { nav } from './lib/nav.js'
-import { starterRoutines } from './lib/starter.js'
+import { PRESETS, presetByKey, buildPreset } from './lib/presets.js'
 import Media, { Thumb } from './components/Media.jsx'
 import Stepper from './components/Stepper.jsx'
 import Icon from './components/Icon.jsx'
@@ -42,15 +42,89 @@ export function confirmSheet(opts) {
   ui().openSheet(close => <ConfirmDialog {...opts} close={close} />, { kind: 'center' })
 }
 
-/* ============================ starter plan ============================ */
-export function loadStarterPlan() {
-  const [push, pull, legs] = starterRoutines()
+/* ============================ program presets ============================ */
+// Loads a preset's routines and points its weekdays at them. Additive on purpose:
+// existing routines and any weekday the preset doesn't claim are left alone, so
+// loading one never silently destroys a plan someone already built.
+export function applyPreset(key) {
+  const built = buildPreset(key)
+  if (!built) return
+  const { preset, routines, week } = built
   update(st => {
-    st.routines.push(push, pull, legs)
-    st.week[1] = push.id; st.week[3] = pull.id; st.week[5] = legs.id
+    st.routines.push(...routines)
+    for (const [day, id] of Object.entries(week)) st.week[day] = id
   })
-  toast(t('Starter plan loaded — Mon Push · Wed Pull · Fri Legs'))
+  const days = Object.keys(week).map(d => t(DAYN[d])).join(' · ')
+  toast(t('{0} loaded — {1}', preset.name, days))
 }
+
+function PresetSheet({ close }) {
+  const [openKey, setOpen] = useState(null)
+  const preset = openKey ? presetByKey(openKey) : null
+
+  if (!preset) return <>
+    <h3>{t('Training programs')}</h3>
+    <div className="muted small" style={{ marginBottom: 12 }}>
+      {t('Published programs, set up ready to run. Loading one adds its routines and fills in the weekdays it uses — anything already in your plan is left alone.')}
+    </div>
+    <div className="list">
+      {PRESETS.map(p => (
+        <div key={p.key} className="item tap" onClick={() => setOpen(p.key)}>
+          <div className="thumb thumb-x"><Icon name={glyphOf(p.glyph)} /></div>
+          <div className="grow">
+            <div className="tt">{p.name}</div>
+            <div className="ss">{p.days} · {p.level} · {p.kit}</div>
+          </div>
+          <Icon name="chevronRight" className="chev" />
+        </div>
+      ))}
+    </div>
+  </>
+
+  const dayLabels = Object.entries(preset.week)
+    .sort((a, b) => (+a[0] === 0 ? 7 : +a[0]) - (+b[0] === 0 ? 7 : +b[0]))
+    .map(([d, i]) => `${t(DAYN[d])} — ${preset.routines[i][0]}`)
+
+  return <>
+    <button className="btn plain sm" onClick={() => setOpen(null)} style={{ marginBottom: 8 }}>
+      <Icon name="chevronLeft" /><span>{t('All programs')}</span>
+    </button>
+    <h3>{preset.name}</h3>
+    <div className="muted small">{preset.days} · {preset.level} · {preset.kit}</div>
+    <p className="small" style={{ marginTop: 10 }}>{preset.blurb}</p>
+
+    <div className="muted small" style={{ margin: '14px 0 6px', fontWeight: 600 }}>{t('Your week')}</div>
+    <div className="small">{dayLabels.map(l => <div key={l}>{l}</div>)}</div>
+
+    {preset.routines.map(([name, , , list]) => (
+      <div key={name} style={{ marginTop: 14 }}>
+        <div className="muted small" style={{ fontWeight: 600, marginBottom: 4 }}>{name}</div>
+        {list.map(([id, sets, reps]) => (
+          <div key={id + name} className="small row between" style={{ padding: '2px 0' }}>
+            <span className="capitalize">{EXIDX[id] ? EXIDX[id].n : id}</span>
+            <span className="muted">{sets} × {reps}</span>
+          </div>
+        ))}
+      </div>
+    ))}
+
+    {preset.caveat && (
+      <div className="card small" style={{ marginTop: 14, textAlign: 'left' }}>
+        <b>{t('Worth knowing')}</b><br />{preset.caveat}
+      </div>
+    )}
+
+    <div style={{ height: 14 }} />
+    <Button variant="primary" icon="plus" onClick={() => { applyPreset(preset.key); close() }}>
+      {t('Add to my plan')}
+    </Button>
+  </>
+}
+
+export const presetSheet = () => ui().openSheet(close => <PresetSheet close={close} />)
+
+// Kept so older call sites and the demo keep working; the picker is the way in now.
+export const loadStarterPlan = () => applyPreset('ppl')
 
 /* ============================ weight picker (shared: body weight + goal) ============================ */
 // Fixed range, not a moving window — a window that resizes itself mid-drag (the previous
