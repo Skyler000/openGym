@@ -22,9 +22,12 @@ services:
     restart: "no"
 
   # Passkey auth + per-user data (Node, no framework).
-  # image: prebuilt (docker compose pull). build: from source (docker compose up --build).
+  # Built from source in this repo. The upstream prebuilt images
+  # (ghcr.io/duartesantos8/opengym-api:latest) were removed deliberately: pulling a
+  # mutable `:latest` tag from a third party's registry runs binaries nobody here has
+  # audited, and the tag can change contents under you between pulls. If you do want
+  # them back, pin by immutable digest (image: ghcr.io/...@sha256:<digest>), never `:latest`.
   api:
-    image: ghcr.io/duartesantos8/opengym-api:latest
     build: ./api
     restart: unless-stopped
     env_file: .env
@@ -37,10 +40,11 @@ services:
   # Builds the React frontend (multi-stage) and serves it, proxying /api → api
   # and the exercise media from the shared volume. Single origin for passkeys.
   web:
-    image: ghcr.io/duartesantos8/opengym-web:latest
     build:
       context: .
-      dockerfile: web/Dockerfile
+      # The Dockerfile lives at the repo root (it was moved out of web/ in commit 3c09425,
+      # but this reference was never updated — `docker compose up --build` failed until now).
+      dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
       media:

@@ -1,0 +1,32 @@
+# --- Runtime state: NEVER commit ---
+# Holds the session-signing secret, the VAPID private key, the user database and
+# per-user state files. api/server.js regenerates the secret and VAPID keys on
+# first boot when they are absent. Committing these is an authentication bypass:
+# anyone with the repo can forge a valid `gymsid` session cookie.
+data/
+
+# Environment / deployment secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies & build output
+node_modules/
+dist/
+frontend/dist/
+
+# OS / editor noise
+.DS_Store
+**/.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Mobile build artefacts
+frontend/android/app/build/
+frontend/android/build/
+frontend/android/.gradle/
+frontend/android/local.properties
+frontend/ios/App/Pods/
+frontend/ios/App/build/
