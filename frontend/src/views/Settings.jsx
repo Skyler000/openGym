@@ -196,13 +196,12 @@ export default function Settings() {
         subtitle={t('to install WinterARC as a full-screen app.') + ' ' + (user ? t('Your data syncs with your profile — sign in anywhere to see it.') : t('Guest data stays on this device — export a backup now and then!'))} />
     </Section>}
 
-    {/* The source link and the dataset credit are not decoration: AGPL section 13 requires a
-        network-served instance to offer its users the source, and the exercise media is CC and
-        must be attributed. Everything else here is ours to word however we like. */}
+    {/* Attribution and the source offer live in NOTICE.md and the repository, not here.
+        If this instance is ever served publicly, AGPL section 13 wants network users to be
+        offered the Corresponding Source somewhere they can reach it. */}
     <div className="dim small" style={{ textAlign: 'center', marginTop: 4, lineHeight: 1.6 }}>
       WinterARC · {t('Built and maintained by Skyler')}<br />
-      <a href="mailto:akashkt6@gmail.com">akashkt6@gmail.com</a><br />
-      <a href={REPO} target="_blank" rel="noopener">{t('Source code')}</a> · {t('exercise data')}: hasaneyldrm/exercises-dataset (CC)
+      <a href="mailto:akashkt6@gmail.com">akashkt6@gmail.com</a>
     </div>
   </div>
 }
