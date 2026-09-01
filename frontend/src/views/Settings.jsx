@@ -196,9 +196,13 @@ export default function Settings() {
         subtitle={t('to install WinterARC as a full-screen app.') + ' ' + (user ? t('Your data syncs with your profile — sign in anywhere to see it.') : t('Guest data stays on this device — export a backup now and then!'))} />
     </Section>}
 
+    {/* The source link and the dataset credit are not decoration: AGPL section 13 requires a
+        network-served instance to offer its users the source, and the exercise media is CC and
+        must be attributed. Everything else here is ours to word however we like. */}
     <div className="dim small" style={{ textAlign: 'center', marginTop: 4, lineHeight: 1.6 }}>
-      WinterARC · {t('free & open source (AGPL v3)')}<br />
-      <a href="https://github.com/Skyler000/WinterARC" target="_blank" rel="noopener">source code</a> · exercise data: hasaneyldrm/exercises-dataset (CC)
+      WinterARC · {t('Built and maintained by Skyler')}<br />
+      <a href="mailto:akashkt6@gmail.com">akashkt6@gmail.com</a><br />
+      <a href={REPO} target="_blank" rel="noopener">{t('Source code')}</a> · {t('exercise data')}: hasaneyldrm/exercises-dataset (CC)
     </div>
   </div>
 }

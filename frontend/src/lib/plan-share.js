@@ -259,7 +259,7 @@ export function planPrintHTML(S, owner) {
   ${weekHTML(S)}
   <h3 class="block">${esc(t('Routines'))}</h3>
   ${body}
-  <footer>${esc(t('Made with WinterARC'))} · winterarc.duarte-santos.ch</footer>
+  <footer>${esc(t('Made with WinterARC'))} · github.com/Skyler000/WinterARC</footer>
 </div></body></html>`
 }
 
