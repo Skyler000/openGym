@@ -18,9 +18,13 @@ git pull && docker compose pull && docker compose up -d
 
 ## Reporting a vulnerability
 
-Use GitHub's private vulnerability reporting — repo **Security** tab → **Report a vulnerability**:
+This fork is maintained by **Skyler**. Report privately by email:
 
-<https://github.com/DuarteSantos8/openGym/security/advisories/new>
+**<akashkt6@gmail.com>**
+
+Or use GitHub's private vulnerability reporting — repo **Security** tab → **Report a vulnerability**:
+
+<https://github.com/Skyler000/openGym/security/advisories/new>
 
 > Private reporting has to be switched on in the repository settings for that link to work
 > (Settings → Advanced Security → Private vulnerability reporting). If it 404s, open a normal
@@ -35,11 +39,10 @@ Useful in a report: the version or commit, whether you're running the prebuilt i
 source build, your `RP_ID`/`ORIGIN` and what sits in front of the app, steps to reproduce, and
 what an attacker gets out of it.
 
-**On response times:** this is a hobby project maintained by one person alongside school. There
-is no SLA and no bounty. Expect days rather than hours, and longer during exam periods. If a
-week goes by with no reply, comment on the advisory thread — it's more likely to be a missed
-notification than a decision. If a report goes unfixed and you want to disclose publicly, say so
-in the thread; there's no objection, and no request to sit on it indefinitely.
+**On response times:** this fork is maintained by one person in their own time. There is no SLA
+and no bounty. Expect days rather than hours. If a week goes by with no reply, follow up by email
+— it's more likely to be a missed notification than a decision. If a report goes unfixed and you
+want to disclose publicly, say so; there's no objection, and no request to sit on it indefinitely.
 
 ## In scope
 

@@ -1,5 +1,15 @@
 # Third-party notices
 
+## This fork
+
+Maintained by **Skyler** — <akashkt6@gmail.com> — at
+[Skyler000/openGym](https://github.com/Skyler000/openGym).
+Report bugs, security issues and questions here, not upstream.
+
+Fork modifications — Copyright (C) 2026 Skyler, licensed under the **GNU AGPL v3.0**.
+
+## Upstream
+
 openGym — Copyright (C) 2026 Duarte Santos.
 openGym's own code is licensed under the **GNU AGPL v3.0** (see [LICENSE](LICENSE)).
 
