@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>openGym Operator's Manual</title>
+<meta name="description" content="Complete user manual for openGym — every screen, every feature, with screenshots.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* ---- tokens: light is the base, dark overrides only the values -------- */
+:root{
+  --paper:#F5F4F1; --card:#FFFFFF; --sunk:#EFEEEA;
+  --ink:#16181C; --iron:#5C6672; --faint:#8A929C;
+  --rule:#DEDCD6; --rule-hard:#C9C6BE;
+  --lime:#1F9D4D; --lime-soft:#E4F3E9;
+  --amber:#8F5A06; --amber-soft:#F7EEDD;
+  --shadow:0 1px 2px rgba(20,22,26,.05), 0 8px 24px rgba(20,22,26,.06);
+  --plate-bg:#101216;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F1216; --card:#171B21; --sunk:#12161B;
+    --ink:#E8ECEF; --iron:#93A0AE; --faint:#6E7A87;
+    --rule:#262C34; --rule-hard:#333B45;
+    --lime:#4ADE80; --lime-soft:#17301F;
+    --amber:#E0A040; --amber-soft:#33260F;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    --plate-bg:#0A0C0F;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F1216; --card:#171B21; --sunk:#12161B;
+  --ink:#E8ECEF; --iron:#93A0AE; --faint:#6E7A87;
+  --rule:#262C34; --rule-hard:#333B45;
+  --lime:#4ADE80; --lime-soft:#17301F;
+  --amber:#E0A040; --amber-soft:#33260F;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  --plate-bg:#0A0C0F;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:24px}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto} *{animation:none!important; transition:none!important}}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"Source Serif 4", Georgia, "Times New Roman", serif;
+  font-size:17px; line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---- shell ------------------------------------------------------------ */
+.shell{display:grid; grid-template-columns:250px minmax(0,1fr); gap:56px; max-width:1180px; margin:0 auto; padding:0 28px}
+.rail{position:sticky; top:0; align-self:start; height:100vh; overflow-y:auto; padding:34px 0 40px; border-right:1px solid var(--rule)}
+.main{min-width:0; padding:34px 0 120px; max-width:74ch}
+
+/* ---- masthead --------------------------------------------------------- */
+.mast{border-bottom:2px solid var(--ink); padding-bottom:22px; margin-bottom:14px}
+.mast .eyebrow{font-family:Archivo,system-ui,sans-serif; font-size:11px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--iron)}
+.mast h1{font-family:Archivo,system-ui,sans-serif; font-weight:700; font-size:clamp(34px,6vw,52px); line-height:1.03; letter-spacing:-.02em; margin:10px 0 12px; text-wrap:balance}
+.mast .sub{color:var(--iron); font-size:18px; max-width:60ch}
+.meta{display:flex; flex-wrap:wrap; gap:8px 10px; margin-top:20px; font-family:Archivo,system-ui,sans-serif; font-size:11.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase}
+.meta span{border:1px solid var(--rule-hard); color:var(--iron); padding:4px 9px; border-radius:3px}
+.meta span b{color:var(--ink); font-weight:600}
+
+/* ---- rail nav --------------------------------------------------------- */
+.rail .brand{font-family:Archivo,system-ui,sans-serif; font-weight:700; font-size:15px; letter-spacing:-.01em; margin-bottom:3px}
+.rail .brandsub{font-family:Archivo,system-ui,sans-serif; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); margin-bottom:22px}
+.rail ol{list-style:none; margin:0; padding:0; counter-reset:sec}
+.rail li{counter-increment:sec}
+.rail a{
+  display:grid; grid-template-columns:26px 1fr; gap:6px; align-items:baseline;
+  font-family:Archivo,system-ui,sans-serif; font-size:13.5px; line-height:1.35;
+  color:var(--iron); text-decoration:none; padding:6px 10px 6px 0; border-radius:3px;
+}
+.rail a::before{content:counter(sec,decimal-leading-zero); font-size:10.5px; font-weight:600; color:var(--faint); font-variant-numeric:tabular-nums}
+.rail a:hover{color:var(--ink)}
+.rail a:focus-visible{outline:2px solid var(--lime); outline-offset:2px}
+.rail a.on{color:var(--lime); font-weight:600}
+.rail a.on::before{color:var(--lime)}
+.themebtn{
+  margin-top:26px; font-family:Archivo,system-ui,sans-serif; font-size:11px; font-weight:600;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--iron);
+  background:none; border:1px solid var(--rule-hard); border-radius:3px;
+  padding:7px 11px; cursor:pointer;
+}
+.themebtn:hover{color:var(--ink); border-color:var(--ink)}
+.themebtn:focus-visible{outline:2px solid var(--lime); outline-offset:2px}
+
+/* ---- sections --------------------------------------------------------- */
+section{padding-top:52px; scroll-margin-top:20px}
+section > .num{
+  font-family:Archivo,system-ui,sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:.18em; text-transform:uppercase; color:var(--lime);
+}
+h2{font-family:Archivo,system-ui,sans-serif; font-weight:700; font-size:clamp(24px,3.4vw,31px); line-height:1.15; letter-spacing:-.015em; margin:7px 0 16px; text-wrap:balance}
+h3{font-family:Archivo,system-ui,sans-serif; font-weight:600; font-size:18px; letter-spacing:-.005em; margin:34px 0 9px; text-wrap:balance}
+h4{font-family:Archivo,system-ui,sans-serif; font-weight:600; font-size:14px; letter-spacing:.01em; margin:22px 0 6px; color:var(--iron)}
+p{margin:0 0 15px}
+a{color:var(--lime); text-underline-offset:2px}
+ul,ol.steps{margin:0 0 16px; padding-left:22px}
+li{margin-bottom:7px}
+strong{font-weight:600}
+hr{border:0; border-top:1px solid var(--rule); margin:44px 0 0}
+
+/* ---- plates (screenshots) --------------------------------------------- */
+figure{margin:26px 0 30px}
+.plate{
+  background:var(--plate-bg); border:1px solid var(--rule-hard); border-radius:10px;
+  padding:14px; box-shadow:var(--shadow); display:flex; justify-content:center;
+}
+.plate img{display:block; width:100%; max-width:290px; height:auto; border-radius:5px}
+.plate.wide img{max-width:none}
+figcaption{
+  display:grid; grid-template-columns:auto 1fr; gap:10px; align-items:baseline;
+  margin-top:11px; font-size:14.5px; color:var(--iron); line-height:1.5;
+}
+figcaption b{
+  font-family:Archivo,system-ui,sans-serif; font-size:10.5px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--lime);
+  border:1px solid currentColor; border-radius:3px; padding:2px 6px; white-space:nowrap;
+}
+.pair{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:20px}
+.pair figure{margin:0}
+
+/* ---- callouts --------------------------------------------------------- */
+.note, .caution{
+  border-left:3px solid var(--lime); background:var(--lime-soft);
+  padding:14px 18px; margin:22px 0; border-radius:0 5px 5px 0; font-size:16px;
+}
+.caution{border-left-color:var(--amber); background:var(--amber-soft)}
+.note .lbl, .caution .lbl{
+  display:block; font-family:Archivo,system-ui,sans-serif; font-size:10.5px; font-weight:700;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--lime); margin-bottom:5px;
+}
+.caution .lbl{color:var(--amber)}
+.note p:last-child, .caution p:last-child{margin-bottom:0}
+
+/* ---- code ------------------------------------------------------------- */
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace; font-size:.855em; background:var(--sunk); border:1px solid var(--rule); border-radius:3px; padding:1px 5px}
+pre{
+  background:var(--sunk); border:1px solid var(--rule); border-radius:6px;
+  padding:14px 16px; overflow-x:auto; margin:0 0 18px;
+}
+pre code{background:none; border:0; padding:0; font-size:13.5px; line-height:1.6}
+
+/* ---- tables ----------------------------------------------------------- */
+.tw{overflow-x:auto; margin:0 0 20px}
+table{border-collapse:collapse; width:100%; font-size:15px; min-width:440px}
+th,td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--rule); vertical-align:top}
+th{font-family:Archivo,system-ui,sans-serif; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--iron); border-bottom:1px solid var(--rule-hard)}
+td code{font-size:.8em}
+tbody tr:last-child td{border-bottom:0}
+
+/* ---- footer ----------------------------------------------------------- */
+footer{margin-top:64px; padding-top:22px; border-top:1px solid var(--rule); font-size:14.5px; color:var(--iron)}
+
+/* ---- responsive ------------------------------------------------------- */
+@media (max-width:900px){
+  .shell{grid-template-columns:1fr; gap:0; padding:0 20px}
+  .rail{position:static; height:auto; border-right:0; border-bottom:1px solid var(--rule); padding:22px 0 18px}
+  .rail ol{display:flex; flex-wrap:wrap; gap:2px 14px}
+  .rail a{padding:3px 0}
+  .main{padding-top:8px; max-width:none}
+  body{font-size:16.5px}
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+<nav class="rail" aria-label="Contents">
+  <div class="brand">openGym</div>
+  <div class="brandsub">Operator's Manual</div>
+  <ol>
+    <li><a href="#about">What this is</a></li>
+    <li><a href="#install">Install &amp; first run</a></li>
+    <li><a href="#signin">Profiles &amp; sign-in</a></li>
+    <li><a href="#home">The Home screen</a></li>
+    <li><a href="#plan">Building your plan</a></li>
+    <li><a href="#start">Starting a workout</a></li>
+    <li><a href="#during">During a workout</a></li>
+    <li><a href="#exercises">The exercise library</a></li>
+    <li><a href="#stats">Stats &amp; progress</a></li>
+    <li><a href="#history">History</a></li>
+    <li><a href="#settings">Settings</a></li>
+    <li><a href="#notifications">Notifications</a></li>
+    <li><a href="#phone">On your phone</a></li>
+    <li><a href="#admin">Admin dashboard</a></li>
+    <li><a href="#backup">Backup &amp; your data</a></li>
+    <li><a href="#trouble">Troubleshooting</a></li>
+  </ol>
+  <button class="themebtn" id="themebtn" type="button">Switch theme</button>
+</nav>
+
+<main class="main">
+
+<header class="mast">
+  <div class="eyebrow">Self-hosted gym &amp; body-weight tracker</div>
+  <h1>openGym Operator's Manual</h1>
+  <p class="sub">Every screen, every feature, and the handful of things that genuinely trip people up — written against a running instance rather than from the feature list.</p>
+  <div class="meta">
+    <span>Version <b>1.2.4</b></span>
+    <span>Fork <b>Skyler000/openGym</b></span>
+    <span>Licence <b>AGPL-3.0</b></span>
+    <span>18 plates</span>
+  </div>
+</header>
+
+<!-- 01 ------------------------------------------------------------------ -->
+<section id="about">
+  <div class="num">Section 01</div>
+  <h2>What this is</h2>
+  <p>openGym is a workout tracker you run yourself. You plan a week of routines, it walks you through each session set by set, and it keeps every weight, rep and weigh-in in a folder on your own machine. There is no company account, no subscription, and no telemetry.</p>
+  <p>Two things follow from that, and both shape how you use it:</p>
+  <ul>
+    <li><strong>Your data lives in <code>./data</code></strong> next to the app. Back that folder up and you have backed up everything.</li>
+    <li><strong>Sign-in is by passkey</strong> — your fingerprint, face, or device PIN. There are no passwords and no reset emails, because there is no one to email you.</li>
+  </ul>
+  <p>The app runs in a browser and installs to a home screen like a native app. There is also a standalone Android build; see <a href="#phone">Section 13</a>.</p>
+
+  <div class="note">
+    <span class="lbl">About the screenshots</span>
+    <p>Every plate in this manual was captured from a real running build, using the app's seeded example history so the charts have something to show. One consequence: a <strong>Demo</strong> section appears at the top of Settings in Plate 13 that you will not see on your own instance.</p>
+  </div>
+</section>
+
+<hr>
+
+<!-- 02 ------------------------------------------------------------------ -->
+<section id="install">
+  <div class="num">Section 02</div>
+  <h2>Install &amp; first run</h2>
+  <p>You need Docker with the Compose plugin. Nothing else — no Node, no build step.</p>
+<pre><code>git clone https://github.com/Skyler000/openGym
+cd openGym
+cp .env.example .env
+docker compose up -d --build</code></pre>
+  <p>Open <code>http://localhost:8080</code> and tap <strong>Create profile</strong>. The first launch also downloads the exercise images and animations — about 140&nbsp;MB, once.</p>
+
+  <h3>Configuration</h3>
+  <p>Everything is set in <code>.env</code>. The two that matter most are <code>RP_ID</code> and <code>ORIGIN</code>, because passkeys are bound to them.</p>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Setting</th><th>What it does</th><th>Default</th></tr></thead>
+    <tbody>
+      <tr><td><code>RP_ID</code></td><td>The exact hostname passkeys are bound to</td><td><code>localhost</code></td></tr>
+      <tr><td><code>ORIGIN</code></td><td>The exact URL the app is served from</td><td><code>http://localhost:8080</code></td></tr>
+      <tr><td><code>WEB_PORT</code></td><td>Host port for the web container</td><td><code>8080</code></td></tr>
+      <tr><td><code>ADMIN_UIDS</code></td><td>Comma-separated user ids granted the admin dashboard</td><td>empty</td></tr>
+      <tr><td><code>INVITE_ONLY</code></td><td>Require an invite code to create a profile</td><td>off</td></tr>
+      <tr><td><code>SESSION_DAYS</code></td><td>How long a sign-in lasts</td><td><code>90</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="caution">
+    <span class="lbl">Port already in use</span>
+    <p>If something else on your machine already holds port 8080, the web container fails to start with <em>"port is already allocated"</em>. Change <strong>both</strong> <code>WEB_PORT</code> and the port inside <code>ORIGIN</code> — they have to agree, or sign-in breaks.</p>
+  </div>
+
+  <div class="caution">
+    <span class="lbl">Never commit ./data</span>
+    <p><code>./data</code> holds the key that signs every session cookie. Anyone who obtains it can forge a sign-in for any account on your instance. It is covered by <code>.gitignore</code> — leave it that way, and never publish a copy of it.</p>
+  </div>
+</section>
+
+<hr>
+
+<!-- 03 ------------------------------------------------------------------ -->
+<section id="signin">
+  <div class="num">Section 03</div>
+  <h2>Profiles &amp; sign-in</h2>
+  <p>Tap <strong>Create profile</strong>, enter a name, and confirm with your fingerprint, face or device PIN. That creates a passkey stored by your phone or password manager — iCloud Keychain on Apple devices, Google Password Manager on Android. Signing in later is the same gesture. Each profile keeps its own plan, workouts and body-weight log.</p>
+
+  <h3>Guest mode</h3>
+  <p><strong>Continue without account</strong> skips sign-in entirely. Everything works, but the data is stored only in that one browser: no sync to other devices, no server copy, and clearing site data erases it. It is the right choice for trying the app out, and the only choice where passkeys are unavailable.</p>
+
+  <div class="caution">
+    <span class="lbl">"Passkeys not supported in this browser"</span>
+    <p>This almost always means the page is not on a secure origin, not that your browser is too old. Browsers only expose the passkey API over <strong>HTTPS</strong>, with a single exception for <code>http://localhost</code> on the machine itself.</p>
+    <p>So reaching the app from your phone at <code>http://192.168.1.x:8080</code> will always show this message. Two rules have to hold together: the page must be served over HTTPS, and <code>RP_ID</code> must equal the hostname in the address bar. An IP address can never satisfy the second — passkeys require a real domain name, so a certificate on a LAN IP does not help. Until you have an HTTPS hostname, phone users are limited to guest mode.</p>
+  </div>
+
+  <h3>Signing out</h3>
+  <p><strong>Sign out</strong> clears this device. <strong>Sign out everywhere</strong> invalidates every session ever issued for the account, on every device — use it if a phone goes missing. Your passkey still works, so you can sign straight back in.</p>
+</section>
+
+<hr>
+
+<!-- 04 ------------------------------------------------------------------ -->
+<section id="home">
+  <div class="num">Section 04</div>
+  <h2>The Home screen</h2>
+  <p>Home answers one question: what am I doing today? The week strip runs across the top with today circled; a dot under a day means a workout is planned or was logged. Arrows step to other weeks.</p>
+  <p>Below it, <strong>Today</strong> names the routine scheduled for this weekday with a <strong>Start</strong> button. Tapping any other day lets you reschedule — move a session without disturbing your weekly plan, which is what you want when you are ill or the gym is shut.</p>
+  <p>Then the <strong>body-weight card</strong>: your latest weigh-in, the change since last time, and a chart with your goal drawn as a dashed line. Losses and gains are coloured by whether they move toward your goal, not by direction — so gaining toward a target reads green. <strong>Log</strong> adds a weigh-in. Finally the <strong>streak card</strong> counts consecutive weeks trained.</p>
+
+  <figure>
+    <div class="plate"><img src="img/home.png" alt="openGym Home screen showing the week strip, today's workout, a body-weight chart with a goal line, and a 12-week streak card."></div>
+    <figcaption><b>Plate 1</b><span>Home. The week strip, today's routine, the body-weight curve against its goal line, and the streak.</span></figcaption>
+  </figure>
+</section>
+
+<hr>
+
+<!-- 05 ------------------------------------------------------------------ -->
+<section id="plan">
+  <div class="num">Section 05</div>
+  <h2>Building your plan</h2>
+  <p>The <strong>Plan</strong> tab has two halves. <strong>Week schedule</strong> assigns a routine to each weekday, or marks it Rest. <strong>Routines</strong> lists the routines themselves — a routine is a named set of exercises, and the same one can sit on several days.</p>
+
+  <figure>
+    <div class="plate"><img src="img/plan.png" alt="Plan screen with a Monday to Sunday schedule assigning Push Day, Pull Day and Leg Day, above a list of routines."></div>
+    <figcaption><b>Plate 2</b><span>Plan. A routine per weekday above the routine library — here a three-day push/pull/legs split.</span></figcaption>
+  </figure>
+
+  <h3>Editing a routine</h3>
+  <p>Open a routine to add exercises, set how many sets each carries, reorder them, and build supersets. This is also where you choose the <strong>progression rule</strong> that decides your target weights.</p>
+
+  <figure>
+    <div class="plate"><img src="img/routine-edit.png" alt="Routine editor listing the exercises in a routine with their set counts."></div>
+    <figcaption><b>Plate 3</b><span>The routine editor — exercises, set counts, ordering, and the progression rule for the routine.</span></figcaption>
+  </figure>
+
+  <h3>Progression rules</h3>
+  <p>Pick one per routine and override it per exercise where you want something different. Whichever you choose, your targets are already filled in when the session opens, and every target explains why it is that number.</p>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Rule</th><th>How it advances</th></tr></thead>
+    <tbody>
+      <tr><td>Linear</td><td>Add a fixed amount whenever you hit every prescribed rep.</td></tr>
+      <tr><td>Greyskull LP</td><td>AMRAP top set, double jumps on a strong set, 10% reset on a stall.</td></tr>
+      <tr><td>Double progression</td><td>Climb reps through a range first, then add weight and drop back down.</td></tr>
+      <tr><td>Add time</td><td>For planks, hangs and carries — the set grows in seconds, not kilos.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Missed reps never advance the load, and repeated stalls trigger a deload. Bodyweight exercises progress in reps instead of weight.</p>
+
+  <h3>Sharing a plan</h3>
+  <p>The upload icon on the Plan header exports your routines and week schedule as a small file — plan only, no workouts and no weigh-ins. Importing <em>merges</em>, so someone else's plan never overwrites yours. You can also print it as a PDF.</p>
+</section>
+
+<hr>
+
+<!-- 06 ------------------------------------------------------------------ -->
+<section id="start">
+  <div class="num">Section 06</div>
+  <h2>Starting a workout</h2>
+  <p>Press <strong>Start</strong> on Home, or the round button in the centre of the tab bar. A <strong>Quick check-in</strong> sheet appears first, asking for your body weight — slider, steppers, or the ±0.5 / ±1 shortcuts. Weighing in before you train is what keeps the curve on Home honest.</p>
+  <p>Three ways out of the sheet: <strong>Save &amp; start workout</strong>, <strong>Start without weighing in</strong> if you would rather not, or <strong>Choose a different workout</strong> to run a routine other than today's.</p>
+
+  <figure>
+    <div class="plate"><img src="img/start-flow.png" alt="Quick check-in sheet with a body-weight slider and buttons to save and start, start without weighing in, or choose a different workout."></div>
+    <figcaption><b>Plate 4</b><span>The check-in sheet. Note the today row behind it reading "Pull Day · Rescheduled" — a session moved off its usual day.</span></figcaption>
+  </figure>
+</section>
+
+<hr>
+
+<!-- 07 ------------------------------------------------------------------ -->
+<section id="during">
+  <div class="num">Section 07</div>
+  <h2>During a workout</h2>
+  <p>The workout screen is built to be read at arm's length between sets. The header counts elapsed time and sets completed; a progress bar tracks the session; <strong>Exercise 1 / 5</strong> tells you where you are.</p>
+  <p>The animation loops the movement with the worked muscles shaded red — tap to pause it, or <strong>Minimize</strong> to collapse it and bring the set grid up. Under the name sit the exercise's tags and your best-ever load.</p>
+
+  <figure>
+    <div class="plate"><img src="img/workout.png" alt="Guided workout screen showing an animated cable lat pulldown demo, last session's sets, a progression hint, and a weight/reps/RIR grid."></div>
+    <figcaption><b>Plate 5</b><span>A guided workout. Last session is quoted in full, the progression rule states its reasoning — "Every rep last time — 5&nbsp;kg more" — and the grid is pre-filled with the resulting target.</span></figcaption>
+  </figure>
+
+  <h3>Logging a set</h3>
+  <p>Each row is one set: weight, reps, and optionally effort, with a circle on the right to mark it done. Steppers change values without a keyboard. The line above the grid quotes exactly what you did last time, including the effort you recorded, so you are never guessing.</p>
+
+  <figure>
+    <div class="plate"><img src="img/workout-sets.png" alt="Workout set grid with rows for weight, reps and RIR, and completion circles."></div>
+    <figcaption><b>Plate 6</b><span>The set grid. Tap the circle to complete a set — that is what starts the rest timer.</span></figcaption>
+  </figure>
+
+  <h3>Effort, in your own scale</h3>
+  <p>An optional third column records how hard a set was, as either <strong>RIR</strong> (reps left in the tank) or <strong>RPE</strong> (the same judgement on a 10-point scale). Off by default; switch it on in Settings. Each set remembers the scale it was logged with, and the value never affects your progression or 1RM — it exists to be read back in Stats.</p>
+
+  <h3>Rest timer</h3>
+  <p>Completing a set starts the rest timer at your configured default (90 seconds out of the box). You can extend or skip it. If you background the app, a push notification tells you when rest is over — see <a href="#notifications">Section 12</a>.</p>
+
+  <h3>Supersets and timed exercises</h3>
+  <p><strong>Supersets</strong> are built in the routine editor and run back-to-back, with a rest only after the pair. <strong>Timed exercises</strong> — planks, hangs, wall sits, loaded carries — are logged in seconds rather than reps, with a work timer separate from the rest timer that records how long you actually held. They can carry weight too.</p>
+
+  <h3>Bodyweight exercises</h3>
+  <p>Push-ups, pull-ups, dips and roughly 300 others know they carry no load: no weight column, no working-weight prompt, just reps. Add a dip belt and it reads as an addition and progression follows the weight again. Without one, reps climb — and past a ceiling you set, the app adds a set rather than another rep.</p>
+
+  <h3>Personal records</h3>
+  <p>Beat a previous best and the app flags it as you log it. Finishing the session shows a summary with the muscles you just trained.</p>
+
+  <div class="note">
+    <span class="lbl">Screen stays awake</span>
+    <p>The screen is held on for the length of a workout and released the moment you finish, so you are not unlocking your phone between every set. It can be switched off in Settings, and some browsers do not support it — iOS in particular refuses the lock in Low Power Mode.</p>
+  </div>
+</section>
+
+<hr>
+
+<!-- 08 ------------------------------------------------------------------ -->
+<section id="exercises">
+  <div class="num">Section 08</div>
+  <h2>The exercise library</h2>
+  <p>1,324 exercises, each with a looping animation. Search by name, or filter by body part with the chips along the top. A second row of chips narrows by equipment, and it adapts to what you have already picked — every combination shown has results behind it.</p>
+
+  <div class="pair">
+    <figure>
+      <div class="plate"><img src="img/exercises.png" alt="Exercise library list with search field, body-part filter chips and exercise rows with thumbnails."></div>
+      <figcaption><b>Plate 7</b><span>The library, unfiltered.</span></figcaption>
+    </figure>
+    <figure>
+      <div class="plate"><img src="img/exercises-filtered.png" alt="Exercise library filtered to a single body part, showing a narrowed result list."></div>
+      <figcaption><b>Plate 8</b><span>Filtered by body part.</span></figcaption>
+    </figure>
+  </div>
+
+  <h3>Exercise detail</h3>
+  <p>Tapping an exercise opens its sheet: the animation, the muscles it works, the equipment it needs, <strong>Add to my plan</strong>, and step-by-step instructions. Instructions are translated in ten languages besides English.</p>
+
+  <figure>
+    <div class="plate"><img src="img/exercise-detail.png" alt="Exercise detail sheet for a 3/4 sit-up, with animation, muscle tags, an Add to my plan button, a 1RM estimator and how-to steps."></div>
+    <figcaption><b>Plate 9</b><span>Exercise detail, with the 1RM estimator. The estimate is an Epley calculation from one set — not a tested max, and the sheet says so.</span></figcaption>
+  </figure>
+
+  <h3>Estimated 1RM</h3>
+  <p>Enter a weight and reps to estimate a one-rep max, or read the app's own estimate from your best eligible set — it names which set it used. It will not guess above 12 reps, where the formula stops being meaningful.</p>
+
+  <h3>Your own exercises</h3>
+  <p>The first row of the library is <strong>Create your own exercise</strong>. A name and a body part is enough. Custom exercises behave like built-in ones everywhere, with an optional description in place of an animation.</p>
+</section>
+
+<hr>
+
+<!-- 09 ------------------------------------------------------------------ -->
+<section id="stats">
+  <div class="num">Section 09</div>
+  <h2>Stats &amp; progress</h2>
+  <p>Four tiles head the tab: total workouts, workouts this month, your week streak, and body-weight change over 30 days. Below them the analysis proper.</p>
+
+  <figure>
+    <div class="plate"><img src="img/stats.png" alt="Stats screen with four summary tiles, a twelve-month activity heatmap, and a front-and-back muscle balance diagram."></div>
+    <figcaption><b>Plate 10</b><span>Stats. Summary tiles, the activity heatmap, and the muscle balance diagram.</span></figcaption>
+  </figure>
+
+  <h3>Activity heatmap</h3>
+  <p>A twelve-month grid shaded by time trained, not merely whether you turned up — a long session reads darker than a short one.</p>
+
+  <h3>Muscle balance</h3>
+  <p>Front and back body diagrams shaded by how many sets each muscle received, over a week, 30 days, 90 days or all time. Underneath, a ranked list of muscles by set count and — more useful — a list of the muscles you have <em>not</em> trained in that period. Choose a male or female figure in Settings.</p>
+  <p>There is also a hard-sets mode that counts only sets taken near failure, answering "where did the stimulus go" rather than "where did the volume go". A muscle can lead on set count and still never be trained hard.</p>
+
+  <figure>
+    <div class="plate"><img src="img/stats-effort.png" alt="Stats showing per-muscle set counts, a list of untrained muscles, and an effort card with average RIR, weekly trend and RIR distribution."></div>
+    <figcaption><b>Plate 11</b><span>Per-muscle set counts and untrained muscles, above the Effort card: average RIR, the share of sets taken near failure, a week-by-week trend, and the full distribution.</span></figcaption>
+  </figure>
+
+  <h3>Effort</h3>
+  <p>If you record effort, this card reads it back over 30 days, 90 days, a year or all time. It always shows how many of your sets were actually rated — an average without its denominator would quietly speak for sets you never rated. <em>Where the sets land</em> shows the spread, because half your sets at failure and half in warm-up territory average out to a healthy-looking number that describes neither.</p>
+
+  <figure>
+    <div class="plate"><img src="img/stats-lower.png" alt="Lower portion of the Stats screen showing additional progress charts."></div>
+    <figcaption><b>Plate 12</b><span>Further down: volume over time, per-exercise top-set curves and personal records.</span></figcaption>
+  </figure>
+
+  <h3>Per-exercise curves</h3>
+  <p>Each exercise gets a top-set chart over time. Where effort was recorded, each session's dot fills in according to how much was left in the tank — so the same weight moved with more in reserve stops reading as a flat line.</p>
+</section>
+
+<hr>
+
+<!-- 10 ------------------------------------------------------------------ -->
+<section id="history">
+  <div class="num">Section 10</div>
+  <h2>History</h2>
+  <p>Reached from the clock icon on the Stats header. Every session you have logged, newest first, with its date, routine, duration and sets. Open one to see the exercises and every set as recorded, and to correct anything logged wrong.</p>
+
+  <figure>
+    <div class="plate"><img src="img/history.png" alt="History list of logged workout sessions with dates and summaries."></div>
+    <figcaption><b>Plate 13</b><span>History — every logged session, newest first.</span></figcaption>
+  </figure>
+</section>
+
+<hr>
+
+<!-- 11 ------------------------------------------------------------------ -->
+<section id="settings">
+  <div class="num">Section 11</div>
+  <h2>Settings</h2>
+  <p>Reached from the gear icon on Home.</p>
+
+  <figure>
+    <div class="plate"><img src="img/settings.png" alt="Settings screen with General, During a workout and Appearance sections."></div>
+    <figcaption><b>Plate 14</b><span>Settings. The <em>Demo</em> block at the top is specific to the demo build used for these captures and will not appear on your instance.</span></figcaption>
+  </figure>
+
+  <h4>General</h4>
+  <p><strong>Language</strong> — twelve languages for the interface, with exercise instructions localised in ten of them. <strong>Weight unit</strong> — kg or lb.</p>
+
+  <div class="caution">
+    <span class="lbl">Units are a label, not a conversion</span>
+    <p>Switching between kg and lb changes what the column is called. It does <strong>not</strong> convert numbers you have already logged. Pick your unit before you start recording.</p>
+  </div>
+
+  <h4>During a workout</h4>
+  <p><strong>Rest timer</strong> default length. <strong>Keep screen awake</strong> during a session. <strong>Sounds</strong> for timer and set completion. <strong>Effort per set</strong> — Off, RIR or RPE.</p>
+
+  <h4>Appearance</h4>
+  <p>Dark or light theme, and eight accent colours, saved to your profile so they follow you across devices. Also the body figure — male or female — used on the muscle map.</p>
+
+  <div class="pair">
+    <figure>
+      <div class="plate"><img src="img/home-light.png" alt="Home screen in the light theme."></div>
+      <figcaption><b>Plate 15</b><span>Light theme.</span></figcaption>
+    </figure>
+    <figure>
+      <div class="plate"><img src="img/home-accent.png" alt="Home screen with the indigo accent colour instead of the default lime."></div>
+      <figcaption><b>Plate 16</b><span>Indigo accent.</span></figcaption>
+    </figure>
+  </div>
+
+  <figure>
+    <div class="plate"><img src="img/stats-light.png" alt="Stats screen rendered in the light theme."></div>
+    <figcaption><b>Plate 17</b><span>The charts and heatmap are designed for both themes, not merely inverted.</span></figcaption>
+  </figure>
+
+  <h4>Data</h4>
+  <figure>
+    <div class="plate"><img src="img/settings-data.png" alt="Lower part of Settings showing data import and export options."></div>
+    <figcaption><b>Plate 18</b><span>Import, export and account controls.</span></figcaption>
+  </figure>
+  <p>See <a href="#backup">Section 15</a>.</p>
+</section>
+
+<hr>
+
+<!-- 12 ------------------------------------------------------------------ -->
+<section id="notifications">
+  <div class="num">Section 12</div>
+  <h2>Notifications</h2>
+  <p>Two kinds, both opt-in per profile, and there is nothing to configure — the server generates its own push keys on first run.</p>
+  <ul>
+    <li><strong>Rest-timer alerts</strong> fire when rest is over, even with the app closed. The client cancels the alert when you finish rest on screen, so it only actually arrives if you backgrounded the app.</li>
+    <li><strong>Day reminders</strong> arrive at a time you choose, on days you have a workout planned but have not logged one. Rest days are skipped, and it fires by your own clock wherever you are.</li>
+  </ul>
+  <p>Enable them in Settings and accept the browser's permission prompt. Notifications need the same HTTPS origin as passkeys do.</p>
+</section>
+
+<hr>
+
+<!-- 13 ------------------------------------------------------------------ -->
+<section id="phone">
+  <div class="num">Section 13</div>
+  <h2>On your phone</h2>
+  <h3>Install as an app</h3>
+  <p>Open your instance in the phone's browser and add it to the home screen — <strong>Share → Add to Home Screen</strong> on iOS, <strong>⋮ → Add to Home screen</strong> on Android. It then runs full-screen with no browser chrome, works offline for everything already cached, and syncs when it reconnects.</p>
+
+  <div class="caution">
+    <span class="lbl">This needs HTTPS</span>
+    <p>Passkey sign-in and push notifications both require a real HTTPS hostname, so a phone cannot use them against a LAN IP. See <a href="#signin">Section 03</a>, and <code>docs/SELF_HOSTING.md</code> for putting a domain in front of the app. Until then a phone can still use guest mode.</p>
+  </div>
+
+  <h3>Standalone Android app</h3>
+  <p>The whole tracker also builds as a sideloadable APK with no server at all: data stays on the phone, with native workout reminders. This fork publishes no prebuilt binary — build it from <code>docs/MOBILE.md</code>.</p>
+</section>
+
+<hr>
+
+<!-- 14 ------------------------------------------------------------------ -->
+<section id="admin">
+  <div class="num">Section 14</div>
+  <h2>Admin dashboard</h2>
+  <p>Optional, and off by default so a fresh instance has no admin at all. To enable it, create your profile first, find your user id, then add it to <code>.env</code>:</p>
+<pre><code>ADMIN_UIDS=your-user-id-here
+docker compose up -d</code></pre>
+  <p>Reload the page and an <strong>Admin dashboard</strong> row appears in Settings. Admin status is evaluated on every request, so you do not need to sign in again.</p>
+  <p>The dashboard shows who is training right now (a heartbeat while a workout is on screen), one row per user with workout counts and last activity, and a drill-down into any user's full history and body-weight log. You can disable an account — which signs it out everywhere and locks it — and generate or revoke invite codes.</p>
+
+  <div class="caution">
+    <span class="lbl">Restarting the API alone gives a 502</span>
+    <p>nginx resolves the API's address once at startup and caches it. Recreating just the <code>api</code> container leaves nginx pointing at an address that no longer exists, and every request returns <em>502 Bad Gateway</em>. Run <code>docker compose restart web</code> afterwards.</p>
+  </div>
+
+  <h3>Invite-only signup</h3>
+  <p>With <code>INVITE_ONLY=1</code>, creating a profile requires a code an admin generates. Codes are single-use and can be revoked until used. Strongly recommended for any instance reachable from the internet — otherwise anyone who finds the URL can create an account.</p>
+</section>
+
+<hr>
+
+<!-- 15 ------------------------------------------------------------------ -->
+<section id="backup">
+  <div class="num">Section 15</div>
+  <h2>Backup &amp; your data</h2>
+  <p>Two independent routes, and they serve different purposes.</p>
+  <h4>Per-profile export</h4>
+  <p>Settings → export writes a single JSON file with your routines, workouts and weigh-ins. Import reads it back on any instance. This is the portable copy — it is what you take with you.</p>
+  <h4>Whole-instance backup</h4>
+  <p>Back up the <code>./data</code> folder. It holds every account, passkey credential, per-user state, and the session signing key. Restoring it restores the instance exactly, passkeys included.</p>
+
+  <h3>Importing from other trackers</h3>
+  <p>openGym reads exports from <strong>FitNotes</strong> (Android and iOS), <strong>Strong</strong> and <strong>Hevy</strong>, and body weight straight out of an <strong>Apple Health</strong> export. Exercise names are matched against the library; anything unrecognised becomes one of your own custom exercises, so nothing in the file is silently dropped.</p>
+
+  <div class="note">
+    <span class="lbl">Changing your domain later</span>
+    <p>Passkeys are bound to <code>RP_ID</code>. Changing it invalidates every existing passkey — accounts and history survive, but everyone re-registers their sign-in. Decide on your hostname before people register.</p>
+  </div>
+</section>
+
+<hr>
+
+<!-- 16 ------------------------------------------------------------------ -->
+<section id="trouble">
+  <div class="num">Section 16</div>
+  <h2>Troubleshooting</h2>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Symptom</th><th>Cause &amp; fix</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>"Passkeys not supported in this browser"</td>
+        <td>Not a secure origin. Passkeys need HTTPS, or <code>localhost</code> on the machine itself. A LAN IP can never work — use guest mode, or put a real HTTPS hostname in front.</td>
+      </tr>
+      <tr>
+        <td>"Verification failed" on sign-in</td>
+        <td><code>RP_ID</code> or <code>ORIGIN</code> does not match the address bar exactly, including scheme and port. Correct them and restart.</td>
+      </tr>
+      <tr>
+        <td>502 Bad Gateway</td>
+        <td>nginx cached the old API container address. <code>docker compose restart web</code>.</td>
+      </tr>
+      <tr>
+        <td>"Port is already allocated"</td>
+        <td>Another service holds the port. Change <code>WEB_PORT</code> <em>and</em> the port in <code>ORIGIN</code> together.</td>
+      </tr>
+      <tr>
+        <td>Exercise animations are blank</td>
+        <td>The media download did not finish. Check <code>docker compose logs media</code>; the folder should hold 1,324 images and 1,324 animations.</td>
+      </tr>
+      <tr>
+        <td>Weights look wrong after switching units</td>
+        <td>Switching kg/lb relabels but never converts. Switch back — nothing was altered.</td>
+      </tr>
+      <tr>
+        <td>Screen sleeps mid-workout</td>
+        <td>The browser refused the wake lock. iOS declines it in Low Power Mode.</td>
+      </tr>
+      <tr>
+        <td>Push notifications never arrive</td>
+        <td>They need the same HTTPS origin as passkeys, plus browser permission. On iOS the app must be installed to the home screen first.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Logs live in <code>docker compose logs -f</code>. To stop the stack, <code>docker compose down</code> — but note that <code>docker compose down -v</code> deletes the data volume and with it every account and passkey.</p>
+</section>
+
+<footer>
+  <p>openGym is free software under the <strong>GNU AGPL v3.0</strong>. Originally created by Duarte Santos; this fork is maintained by <strong>Skyler</strong> — <a href="mailto:akashkt6@gmail.com">akashkt6@gmail.com</a>. Exercise media comes from the <em>hasaneyldrm/exercises-dataset</em> project and keeps its own terms; the body diagrams derive from <em>MuscleMap</em> by Melih Colpan under the MIT licence. See <code>NOTICE.md</code>.</p>
+</footer>
+
+</main>
+</div>
+
+<script>
+(function(){
+  // Theme toggle. Default follows the OS; the button stamps an explicit choice.
+  var btn = document.getElementById('themebtn');
+  var root = document.documentElement;
+  try {
+    var saved = localStorage.getItem('ogmanual-theme');
+    if (saved) root.setAttribute('data-theme', saved);
+  } catch (e) {}
+  btn.addEventListener('click', function(){
+    var cur = root.getAttribute('data-theme');
+    if (!cur) {
+      cur = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    var next = cur === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('ogmanual-theme', next); } catch (e) {}
+  });
+
+  // Highlight the section currently in view in the rail.
+  var links = Array.prototype.slice.call(document.querySelectorAll('.rail a'));
+  var byId = {};
+  links.forEach(function(a){ byId[a.getAttribute('href').slice(1)] = a; });
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if (!en.isIntersecting) return;
+      links.forEach(function(a){ a.classList.remove('on'); });
+      var a = byId[en.target.id];
+      if (a) a.classList.add('on');
+    });
+  }, { rootMargin: '0px 0px -75% 0px', threshold: 0 });
+  document.querySelectorAll('section[id]').forEach(function(s){ obs.observe(s); });
+})();
+</script>
+
+</body>
+</html>

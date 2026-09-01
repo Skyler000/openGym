@@ -52,6 +52,9 @@ self-hosted instance — there is no hosted service behind this fork.</sub>
 > reports here rather than upstream. openGym was originally created by Duarte Santos and remains
 > licensed under the AGPL-3.0; see [NOTICE.md](NOTICE.md).
 
+📖 **New here? Read the [Operator's Manual](docs/manual/index.html)** — every screen and feature
+with screenshots, plus setup and troubleshooting. Open `docs/manual/index.html` in a browser.
+
 ## Why
 
 Most workout apps lock your data behind a login on their servers, nag you to upgrade, or
