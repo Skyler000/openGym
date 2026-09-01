@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>openGym Operator's Manual</title>
-<meta name="description" content="Complete user manual for openGym — every screen, every feature, with screenshots.">
+<title>WinterARC Operator's Manual</title>
+<meta name="description" content="Complete user manual for WinterARC — every screen, every feature, with screenshots.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;500&display=swap">
@@ -172,7 +172,7 @@ footer{margin-top:64px; padding-top:22px; border-top:1px solid var(--rule); font
 <div class="shell">
 
 <nav class="rail" aria-label="Contents">
-  <div class="brand">openGym</div>
+  <div class="brand">WinterARC</div>
   <div class="brandsub">Operator's Manual</div>
   <ol>
     <li><a href="#about">What this is</a></li>
@@ -199,11 +199,11 @@ footer{margin-top:64px; padding-top:22px; border-top:1px solid var(--rule); font
 
 <header class="mast">
   <div class="eyebrow">Self-hosted gym &amp; body-weight tracker</div>
-  <h1>openGym Operator's Manual</h1>
+  <h1>WinterARC Operator's Manual</h1>
   <p class="sub">Every screen, every feature, and the handful of things that genuinely trip people up — written against a running instance rather than from the feature list.</p>
   <div class="meta">
     <span>Version <b>1.2.4</b></span>
-    <span>Fork <b>Skyler000/openGym</b></span>
+    <span>Fork <b>Skyler000/WinterARC</b></span>
     <span>Licence <b>AGPL-3.0</b></span>
     <span>18 plates</span>
   </div>
@@ -213,7 +213,7 @@ footer{margin-top:64px; padding-top:22px; border-top:1px solid var(--rule); font
 <section id="about">
   <div class="num">Section 01</div>
   <h2>What this is</h2>
-  <p>openGym is a workout tracker you run yourself. You plan a week of routines, it walks you through each session set by set, and it keeps every weight, rep and weigh-in in a folder on your own machine. There is no company account, no subscription, and no telemetry.</p>
+  <p>WinterARC is a workout tracker you run yourself. You plan a week of routines, it walks you through each session set by set, and it keeps every weight, rep and weigh-in in a folder on your own machine. There is no company account, no subscription, and no telemetry.</p>
   <p>Two things follow from that, and both shape how you use it:</p>
   <ul>
     <li><strong>Your data lives in <code>./data</code></strong> next to the app. Back that folder up and you have backed up everything.</li>
@@ -234,8 +234,8 @@ footer{margin-top:64px; padding-top:22px; border-top:1px solid var(--rule); font
   <div class="num">Section 02</div>
   <h2>Install &amp; first run</h2>
   <p>You need Docker with the Compose plugin. Nothing else — no Node, no build step.</p>
-<pre><code>git clone https://github.com/Skyler000/openGym
-cd openGym
+<pre><code>git clone https://github.com/Skyler000/WinterARC
+cd WinterARC
 cp .env.example .env
 docker compose up -d --build</code></pre>
   <p>Open <code>http://localhost:8080</code> and tap <strong>Create profile</strong>. The first launch also downloads the exercise images and animations — about 140&nbsp;MB, once.</p>
@@ -299,7 +299,7 @@ docker compose up -d --build</code></pre>
   <p>Then the <strong>body-weight card</strong>: your latest weigh-in, the change since last time, and a chart with your goal drawn as a dashed line. Losses and gains are coloured by whether they move toward your goal, not by direction — so gaining toward a target reads green. <strong>Log</strong> adds a weigh-in. Finally the <strong>streak card</strong> counts consecutive weeks trained.</p>
 
   <figure>
-    <div class="plate"><img src="img/home.png" alt="openGym Home screen showing the week strip, today's workout, a body-weight chart with a goal line, and a 12-week streak card."></div>
+    <div class="plate"><img src="img/home.png" alt="WinterARC Home screen showing the week strip, today's workout, a body-weight chart with a goal line, and a 12-week streak card."></div>
     <figcaption><b>Plate 1</b><span>Home. The week strip, today's routine, the body-weight curve against its goal line, and the streak.</span></figcaption>
   </figure>
 </section>
@@ -604,7 +604,7 @@ docker compose up -d</code></pre>
   <p>Back up the <code>./data</code> folder. It holds every account, passkey credential, per-user state, and the session signing key. Restoring it restores the instance exactly, passkeys included.</p>
 
   <h3>Importing from other trackers</h3>
-  <p>openGym reads exports from <strong>FitNotes</strong> (Android and iOS), <strong>Strong</strong> and <strong>Hevy</strong>, and body weight straight out of an <strong>Apple Health</strong> export. Exercise names are matched against the library; anything unrecognised becomes one of your own custom exercises, so nothing in the file is silently dropped.</p>
+  <p>WinterARC reads exports from <strong>FitNotes</strong> (Android and iOS), <strong>Strong</strong> and <strong>Hevy</strong>, and body weight straight out of an <strong>Apple Health</strong> export. Exercise names are matched against the library; anything unrecognised becomes one of your own custom exercises, so nothing in the file is silently dropped.</p>
 
   <div class="note">
     <span class="lbl">Changing your domain later</span>
@@ -661,7 +661,7 @@ docker compose up -d</code></pre>
 </section>
 
 <footer>
-  <p>openGym is free software under the <strong>GNU AGPL v3.0</strong>. Originally created by Duarte Santos; this fork is maintained by <strong>Skyler</strong> — <a href="mailto:akashkt6@gmail.com">akashkt6@gmail.com</a>. Exercise media comes from the <em>hasaneyldrm/exercises-dataset</em> project and keeps its own terms; the body diagrams derive from <em>MuscleMap</em> by Melih Colpan under the MIT licence. See <code>NOTICE.md</code>.</p>
+  <p>WinterARC is free software under the <strong>GNU AGPL v3.0</strong>. Originally created by Duarte Santos; this fork is maintained by <strong>Skyler</strong> — <a href="mailto:akashkt6@gmail.com">akashkt6@gmail.com</a>. Exercise media comes from the <em>hasaneyldrm/exercises-dataset</em> project and keeps its own terms; the body diagrams derive from <em>MuscleMap</em> by Melih Colpan under the MIT licence. See <code>NOTICE.md</code>.</p>
 </footer>
 
 </main>

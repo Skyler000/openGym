@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: opengym
+    name: winterarc
     env: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .

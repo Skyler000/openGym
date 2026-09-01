@@ -1,6 +1,6 @@
 {
-  "name": "openGym",
-  "short_name": "openGym",
+  "name": "WinterARC",
+  "short_name": "WinterARC",
   "description": "Personal gym & body weight tracker",
   "start_url": "./",
   "scope": "./",

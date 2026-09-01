@@ -1,5 +1,9 @@
 # Changelog
 
+> **Renamed to WinterARC.** This project was previously called **openGym**. Entries below
+> v1.2.4 were released under that name and are left unchanged as a historical record — they
+> describe releases that really did ship as openGym. See [NOTICE.md](NOTICE.md).
+
 ## v1.2.4 — 2026-08-01
 
 The effort ratings you have been recording since v1.2.3 now answer questions, and bodyweight

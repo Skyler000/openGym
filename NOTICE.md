@@ -1,10 +1,13 @@
 # Third-party notices
 
-## This fork
+## This fork — WinterARC
 
-Maintained by **Skyler** — <akashkt6@gmail.com> — at
-[Skyler000/openGym](https://github.com/Skyler000/openGym).
+**WinterARC** is a modified and renamed fork of **openGym**, maintained by **Skyler**
+— <akashkt6@gmail.com> — at [Skyler000/WinterARC](https://github.com/Skyler000/WinterARC).
 Report bugs, security issues and questions here, not upstream.
+
+This is **not** the original openGym and is not endorsed by its author. It has been renamed
+so the two are not confused, as the AGPL requires modified versions to be marked.
 
 Fork modifications — Copyright (C) 2026 Skyler, licensed under the **GNU AGPL v3.0**.
 

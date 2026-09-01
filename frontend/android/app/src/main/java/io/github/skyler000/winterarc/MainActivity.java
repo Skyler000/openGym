@@ -1,4 +1,4 @@
-package ch.duartesantos.opengym;
+package io.github.skyler000.winterarc;
 
 import com.getcapacitor.BridgeActivity;
 
