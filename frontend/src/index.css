@@ -957,3 +957,28 @@ h4.sec{
 /* A coach's cue for the exercise, sitting above the set grid. */
 .coach-note{border-left:3px solid var(--acc);display:flex;gap:8px;align-items:flex-start;color:var(--label)}
 .coach-note .icn{color:var(--acc);flex:none;margin-top:2px}
+
+/* Header bell with its unread count. */
+.iconbtn.bell{position:relative}
+.iconbtn.bell .badge{position:absolute;top:-4px;right:-4px;box-shadow:0 0 0 2px var(--bg)}
+
+/* Notification feed, and the activity feed on the coach dashboard, which reads the same way. */
+.note{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-bottom:1px solid var(--sep)}
+.note:last-child{border-bottom:0}
+.note.link{cursor:pointer}
+.note .grow{flex:1;min-width:0}
+.note .tt{font-weight:600;font-size:15px;line-height:1.3}
+.note .bd{color:var(--label-2);font-size:14px;margin-top:2px;line-height:1.4}
+.note .tm{color:var(--label-3);font-size:12px;margin-top:4px}
+.note.new .tt::after{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--acc);margin-left:7px;vertical-align:1px}
+
+/* Grouped columns for a few periods. */
+.barchart .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--label-2);margin-bottom:10px}
+.barchart .legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.bars{display:flex;align-items:stretch;gap:8px}
+.bars .col{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px}
+.bars .stack{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:3px;border-bottom:1px solid var(--sep)}
+.bars.valued .stack{padding-top:18px}
+.bars .stack i{position:relative;display:block;flex:1;max-width:24px;border-radius:5px 5px 2px 2px}
+.bars .stack i b{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:3px;font-size:10.5px;font-weight:600;color:var(--label-2);white-space:nowrap;font-variant-numeric:tabular-nums}
+.bars .col>span{font-size:11px;color:var(--label-2);white-space:nowrap}

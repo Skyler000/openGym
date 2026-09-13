@@ -5,7 +5,6 @@ import { useApi, post, toast, copy } from '../../lib/useApi.js'
 import { accessLabel, daysText, dueSoon, fmtINR, fmtDay, COACH_REMIND_DAYS } from '../../lib/roles.js'
 import { confirmSheet } from '../../sheets.jsx'
 import Icon from '../../components/Icon.jsx'
-import Kpi from '../../components/Kpi.jsx'
 import { Button, Segmented, Switch, Row, Stepper } from '../../components/ui.jsx'
 
 // Super admin home: every coach, what they owe, and who is due to renew.
@@ -77,9 +76,6 @@ export default function Coaches() {
   const coaches = data?.coaches || []
   const shown = coaches.filter(c => matches(c, filter)).sort((a, b) => a.name.localeCompare(b.name))
   const active = coaches.filter(c => c.access === 'active').length
-  const clientsTotal = coaches.reduce((n, c) => n + c.clients.total, 0)
-  const clientsActive = coaches.reduce((n, c) => n + c.clients.active, 0)
-  const owed = coaches.reduce((n, c) => n + c.billing.owed, 0)
   const open = (invites.data?.invites || []).filter(i => !i.usedBy)
   const settings = data?.settings
 
@@ -94,13 +90,6 @@ export default function Coaches() {
       <button className="iconbtn" aria-label="Invite a coach" onClick={() => openSheet(close => <InviteCoachSheet close={close} onDone={invites.reload} />)}><Icon name="personAdd" /></button>
     </div>
     {error && <div className="card small" style={{ color: 'var(--red)' }}>{error}</div>}
-
-    <div className="kpis">
-      <Kpi icon="users" label="Coaches" value={coaches.length} sub={`${active} active`} />
-      <Kpi icon="person" label="Clients" value={clientsTotal} sub={`${clientsActive} active`} />
-      <Kpi icon="rupee" label="Owed by coaches" value={fmtINR(owed)} sub="client renewals not paid over" color={owed ? 'var(--orange)' : undefined} />
-      <Kpi icon="calendar" label={`Renewals · ${COACH_REMIND_DAYS} days`} value={coaches.filter(isDue).length} sub="coach subscriptions" />
-    </div>
 
     <Segmented className="seg-range" options={FILTERS} value={filter} onChange={setFilter} />
     <div className="list" style={{ marginTop: 12 }}>

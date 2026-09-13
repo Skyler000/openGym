@@ -12,6 +12,7 @@ import { DEMO, REPO } from '../lib/demo.js'
 import { MOBILE, shareExport, syncReminder } from '../lib/mobile.js'
 import { presetSheet, confirmSheet, importFromApp } from '../sheets.jsx'
 import { homeRoute } from '../lib/roles.js'
+import { useNotes } from '../lib/notifications.js'
 import Icon from '../components/Icon.jsx'
 import { Section, Row, SelectRow, Switch, Segmented, Button, TextField } from '../components/ui.jsx'
 
@@ -24,6 +25,11 @@ export default function Settings() {
   const fileRef = useRef(null)
   const importRef = useRef(null)
   const wakeOK = wakeLockSupported()
+  const unread = useNotes(s => s.unread)
+  // Workout, rest-timer and data-import settings belong to the tracker, which coaches and the
+  // super admin don't have — their app is the dashboards.
+  const tracker = !user || user.role === 'client'
+  const pushKind = !tracker ? 'staff' : user?.coachId ? 'coached' : 'self'
 
   const doExport = async () => {
     const json = JSON.stringify(S, null, 2)
@@ -87,9 +93,10 @@ export default function Settings() {
           onClick={() => window.open(REPO, '_blank', 'noopener')} />
       </> : user ? <>
         <Row icon="personCircle" iconTint="var(--grey)" title={user.name} subtitle={t('Signed in with passkey — data syncs to this profile.')} />
-        {user.role === 'superadmin' && <Row icon="users" iconTint="var(--indigo)" title={t('Coaches & billing')} accessory="chevron" onClick={() => nav('/sa')} />}
-        {user.role === 'coach' && <Row icon="users" iconTint="var(--indigo)" title={t('Your clients')} accessory="chevron" onClick={() => nav('/c')} />}
+        {user.role === 'superadmin' && <Row icon="users" iconTint="var(--indigo)" title={t('Coaches & billing')} accessory="chevron" onClick={() => nav('/sa/coaches')} />}
+        {user.role === 'coach' && <Row icon="users" iconTint="var(--indigo)" title={t('Your clients')} accessory="chevron" onClick={() => nav('/c/clients')} />}
         {user.role === 'client' && user.coachName && <Row icon="personCircle" iconTint="var(--acc)" title={t('Coach: {0}', user.coachName)} accessory="chevron" onClick={() => nav('/coach')} />}
+        <Row icon="bell" iconTint="var(--red)" title={t('Notifications')} value={unread ? String(unread) : undefined} accessory="chevron" onClick={() => nav('/notifications')} />
         <Row icon="signOut" iconTint="var(--red)" title={t('Sign out')} danger onClick={() => confirmSheet({ title: t('Sign out?'), message: t('Your data is synced to your profile first, then cleared from this device.'), confirmText: t('Sign out'), danger: true, onConfirm: () => { signOut(); nav('/home') } })} />
         <Row icon="shield" iconTint="var(--red)" title={t('Sign out everywhere')} subtitle={t('Ends this profile’s sessions on all your devices.')} danger onClick={signOutEverywhere} />
       </> : webauthnOK() ? <>
@@ -119,7 +126,7 @@ export default function Settings() {
     </Section>
 
     {/* ---------- during a workout ---------- */}
-    <Section title={t('During a workout')} footer={wakeOK ? t('The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.') : null}>
+    {tracker && <Section title={t('During a workout')} footer={wakeOK ? t('The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.') : null}>
       <SelectRow icon="timer" iconTint="var(--orange)" title={t('Rest timer')}
         value={S.restSec} onChange={v => update(s => { s.restSec = v })}
         options={[60, 90, 120, 150, 180].map(v => ({ value: v, label: v + 's' }))} />
@@ -141,9 +148,9 @@ export default function Settings() {
           options={[{ value: 'none', label: t('Off') }, { value: 'rir', label: t('RIR') }, { value: 'rpe', label: t('RPE') }]}
           value={effortOf(S)} onChange={v => update(s => { s.effort = v; delete s.showRir })} />
       </Row>
-    </Section>
+    </Section>}
 
-    {(user || MOBILE) && <NotificationsCard S={S} update={update} toast={toast} />}
+    {(user || MOBILE) && <NotificationsCard S={S} update={update} toast={toast} kind={pushKind} />}
 
     {/* ---------- appearance ---------- */}
     <Section title={t('Appearance')} footer={DEMO || MOBILE ? undefined : t('synced with your profile')}>
@@ -176,7 +183,7 @@ export default function Settings() {
     </Section>
 
     {/* ---------- data: fill it, bring things over, back it up, wipe it ---------- */}
-    <Section title={t('Data')}>
+    {tracker && <Section title={t('Data')}>
       <Row icon="sparkles" iconTint="var(--acc)" title={t('Training programs')}
         subtitle={t('StrongLifts, Starting Strength, Greyskull, PPL, Upper/Lower…')}
         accessory="chevron" onClick={presetSheet} />
@@ -186,7 +193,7 @@ export default function Settings() {
       <Row icon="upload" iconTint="var(--blue)" title={t('Import backup')} accessory="chevron" onClick={() => fileRef.current.click()} />
       <Row icon="download" iconTint="var(--blue)" title={t('Export backup (JSON)')} accessory="chevron" onClick={doExport} />
       <Row icon="trash" iconTint="var(--red)" title={t('Reset everything')} danger onClick={() => confirmSheet({ title: t('Reset everything?'), message: t('Deletes your plan, workouts and body weight on this device. This cannot be undone.'), confirmText: t('Delete everything'), danger: true, onConfirm: () => { replaceState(JSON.parse(JSON.stringify(DEF)), true); nav('/home'); toast(t('All data reset')) } })} />
-    </Section>
+    </Section>}
     <input ref={fileRef} type="file" accept=".json,application/json" style={{ display: 'none' }} onChange={doImport} />
     {/* Reset after reading so picking the same file twice still fires onChange. */}
     <input ref={importRef} type="file" accept=".csv,.xml,text/csv,text/xml" style={{ display: 'none' }}
@@ -245,9 +252,9 @@ function effortHelpSheet() {
   </>)
 }
 
-function NotificationsCard({ S, update, toast }) {
+function NotificationsCard({ S, update, toast, kind }) {
   if (MOBILE) return <MobileReminderCard S={S} update={update} toast={toast} />
-  return <PushCard S={S} update={update} toast={toast} />
+  return <PushCard S={S} update={update} toast={toast} kind={kind} />
 }
 
 // Mobile build: the reminder is a native local notification scheduled on planned weekdays —
@@ -279,7 +286,8 @@ function MobileReminderCard({ S, update, toast }) {
   )
 }
 
-function PushCard({ S, update, toast }) {
+function PushCard({ S, update, toast, kind = 'self' }) {
+  const tracker = kind !== 'staff'
   const [on, setOn] = useState(false)
   const [busy, setBusy] = useState(false)
   const supported = pushSupported()
@@ -311,20 +319,21 @@ function PushCard({ S, update, toast }) {
   return <>
     <Section
       title={t('Notifications')}
-      footer={on && S.reminder?.on
+      footer={on && tracker && S.reminder?.on
         ? t("Only sent on days you have a routine planned and haven't logged a workout yet.") +
           (S.reminder?.tz ? ' ' + t('Timezone: {0} (auto-detected, updates if you travel).', S.reminder.tz) : '')
         : null}
     >
-      <Row icon="bell" iconTint="var(--red)" title={t('Push notifications')} subtitle={t('Rest-timer alerts, even if WinterARC is closed.')}>
+      <Row icon="bell" iconTint="var(--red)" title={t('Push notifications')} subtitle={kind === 'staff' ? 'Renewal reminders and account alerts, even if WinterARC is closed.'
+        : t(kind === 'coached' ? 'Rest-timer alerts and updates from your coach, even if WinterARC is closed.' : 'Rest-timer alerts, even if WinterARC is closed.')}>
         <Switch checked={on} disabled={busy} onChange={toggle} />
       </Row>
-      {on && (
+      {on && tracker && (
         <Row icon="calendar" iconTint="var(--orange)" title={t('Workout day reminder')}>
           <Switch checked={!!S.reminder?.on} onChange={() => update(s => { s.reminder = { ...(s.reminder || DEF.reminder), on: !s.reminder?.on, tz: localTZ() } })} />
         </Row>
       )}
-      {on && S.reminder?.on && (
+      {on && tracker && S.reminder?.on && (
         <Row icon="clock" iconTint="var(--purple)" title={t('Reminder time')}>
           <input type="time" className="timef" value={S.reminder?.time || DEF.reminder.time}
             onChange={e => update(s => { s.reminder = { ...(s.reminder || DEF.reminder), time: e.target.value, tz: localTZ() } })} />

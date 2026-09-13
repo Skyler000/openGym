@@ -1,13 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
 import { useApi, post, toast, copy } from '../../lib/useApi.js'
-import { accessLabel, daysText, dueSoon, pct, fmtINR, fmtDay, COACH_REMIND_DAYS, CLIENT_REMIND_DAYS } from '../../lib/roles.js'
+import { accessLabel, daysText, dueSoon, pct, fmtINR, fmtDay, CLIENT_REMIND_DAYS } from '../../lib/roles.js'
 import { todayISO } from '../../lib/format.js'
 import { confirmSheet } from '../../sheets.jsx'
 import Icon from '../../components/Icon.jsx'
-import Kpi from '../../components/Kpi.jsx'
 import { Button, Segmented } from '../../components/ui.jsx'
 
 // Coach home: the roster, who is training right now, and who needs renewing. English-only.
@@ -50,7 +48,6 @@ const FILTERS = [
 
 export default function Clients() {
   const nav = useNavigate()
-  const user = useStore(s => s.user)
   const openSheet = useUI(s => s.openSheet)
   const { data, error } = useApi('/api/coach/clients')
   const invites = useApi('/api/coach/invites')
@@ -77,21 +74,7 @@ export default function Clients() {
       <button className="iconbtn" aria-label="Invite a client" onClick={() => openSheet(close => <InviteClientSheet fee={fee} close={close} onDone={invites.reload} />)}><Icon name="personAdd" /></button>
     </div>
 
-    {dueSoon(user?.daysLeft, COACH_REMIND_DAYS) && <div className="card row" style={{ gap: 10, alignItems: 'flex-start' }}>
-      <Icon name="calendar" style={{ color: 'var(--yellow)', fontSize: 20, flex: 'none', marginTop: 1 }} />
-      <div className="small">
-        Your coach subscription ends {user.daysLeft === 0 ? 'today' : `in ${user.daysLeft} day${user.daysLeft === 1 ? '' : 's'}`} ({fmtDay(user.paidUntil)}).
-        Contact the platform administrator to renew — your clients lose access when it lapses.
-      </div>
-    </div>}
     {error && <div className="card small" style={{ color: 'var(--red)' }}>{error}</div>}
-
-    <div className="kpis">
-      <Kpi icon="users" label="Active" value={activeCount} sub={`of ${clients.length}`} />
-      <Kpi icon="calendar" label={`Renewal due · ${CLIENT_REMIND_DAYS}d`} value={clients.filter(isDue).length} color={clients.some(isDue) ? 'var(--yellow)' : undefined} />
-      <Kpi icon="lock" label="Expired or paused" value={clients.length - activeCount} />
-      <Kpi icon="flame" label="Training now" value={clients.filter(c => c.live).length} color={clients.some(c => c.live) ? 'var(--acc)' : undefined} />
-    </div>
 
     <Segmented className="seg-range" options={FILTERS} value={filter} onChange={setFilter} />
     <div className="list" style={{ marginTop: 12 }}>

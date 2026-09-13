@@ -1,7 +1,7 @@
 // Super admin: the platform owner. Creates coaches (by invite), records what they pay, settles
 // what they owe for their clients, and can lock, suspend or disable any coach.
-import { extendFrom, daysLeft, COACH_TERM_DAYS } from '../lib/access.js';
-import { coachBilling, settle } from '../lib/billing.js';
+import { extendFrom, daysLeft, COACH_TERM_DAYS, COACH_REMIND_DAYS } from '../lib/access.js';
+import { coachBilling, settle, revenue, outstanding, monthlySeries, recentCollections } from '../lib/billing.js';
 import { isoDay } from '../lib/time.js';
 
 const MAX_FEE = 10000000;
@@ -41,6 +41,47 @@ export default function superadminRoutes(ctx) {
   }
 
   return {
+    // The platform at a glance: money in, money owed, who is active, who is due, each coach's numbers.
+    'GET /api/sa/dashboard': async (req, res) => {
+      if (!requireAdmin(req, res)) return;
+      const now = Date.now();
+      const rows = db.users.filter(u => role(u) === 'coach').map(c => coachRow(c, now));
+      const clientStates = db.users.filter(u => role(u) === 'client').map(access);
+      const count = (list, s) => list.filter(a => a === s).length;
+      const coachStates = rows.map(c => c.access);
+      const names = new Map(rows.map(c => [c.id, c.name]));
+      const soonest = c => c.daysLeft ?? -1e9;   // never paid sorts first
+      json(res, 200, {
+        revenue: revenue(db.ledger, now, TZ_OFFSET_MIN),
+        outstanding: outstanding(db.ledger),
+        series: monthlySeries(db.ledger, now, 6, TZ_OFFSET_MIN),
+        coaches: {
+          total: rows.length, active: count(coachStates, 'active'), expired: count(coachStates, 'expired'),
+          blocked: rows.filter(c => ['locked', 'suspended', 'disabled'].includes(c.access)).length,
+          due: rows.filter(c => c.access === 'active' && c.daysLeft != null && c.daysLeft <= COACH_REMIND_DAYS).length
+        },
+        clients: {
+          total: clientStates.length, active: count(clientStates, 'active'), expired: count(clientStates, 'expired'),
+          paused: clientStates.length - count(clientStates, 'active') - count(clientStates, 'expired')
+        },
+        // Inside the reminder window or already lapsed. A coach an admin has locked, suspended or
+        // disabled is not waiting on a payment, so is not listed here.
+        pendingRenewals: rows
+          .filter(c => (c.access === 'active' && c.daysLeft != null && c.daysLeft <= COACH_REMIND_DAYS) || c.access === 'expired')
+          .sort((a, b) => soonest(a) - soonest(b))
+          .map(c => ({ id: c.id, name: c.name, access: c.access, daysLeft: c.daysLeft, paidUntil: c.paidUntil, clients: c.clients.total })),
+        coachStats: [...rows].sort((a, b) => b.clients.active - a.clients.active || a.name.localeCompare(b.name)),
+        recentPayments: recentCollections(db.ledger, 8).map(p => ({ ...p, coachName: names.get(p.coachId) || 'Deleted coach' })),
+        settings: db.settings
+      });
+    },
+
+    // Runs the reminder check now rather than waiting for its next scheduled pass.
+    'POST /api/sa/reminders/run': async (req, res) => {
+      if (!requireAdmin(req, res)) return;
+      json(res, 200, { ok: true, sent: ctx.runReminders() });
+    },
+
     'GET /api/sa/coaches': async (req, res) => {
       if (!requireAdmin(req, res)) return;
       const now = Date.now();

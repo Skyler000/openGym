@@ -26,14 +26,16 @@ export default function TabBar({ onStart }) {
 
   if (isSuperAdmin(user)) return (
     <nav id="tabbar">
-      <Tab on={cur === 'sa'} icon="users" to="/sa" label="Coaches" />
+      <Tab on={path === '/sa' || cur === 'notifications'} icon="chart" to="/sa" label="Dashboard" />
+      <Tab on={path.startsWith('/sa/coach')} icon="users" to="/sa/coaches" label="Coaches" />
       <Tab on={cur === 'settings'} icon="gear" to="/settings" label={t('Settings')} />
     </nav>
   )
 
   if (isCoach(user)) return (
     <nav id="tabbar">
-      <Tab on={path === '/c' || path.startsWith('/c/client')} icon="users" to="/c" label="Clients" />
+      <Tab on={path === '/c' || cur === 'notifications'} icon="chart" to="/c" label="Dashboard" />
+      <Tab on={path.startsWith('/c/client')} icon="users" to="/c/clients" label="Clients" />
       <Tab on={path.startsWith('/c/plan')} icon="clipboard" to="/c/plans" label="Plans" />
       <Tab on={cur === 'settings'} icon="gear" to="/settings" label={t('Settings')} />
     </nav>
@@ -41,7 +43,7 @@ export default function TabBar({ onStart }) {
 
   // A coached client trades the Exercises tab for their coach; the library stays one tap away on Plan.
   const coached = user?.role === 'client' && !!user.coachId
-  const on = k => cur === k || (cur === 'history' && k === 'stats') || (cur === 'settings' && k === 'home') ||
+  const on = k => cur === k || (cur === 'history' && k === 'stats') || ((cur === 'settings' || cur === 'notifications') && k === 'home') ||
     (cur === 'progress' && k === (coached ? 'coach' : 'stats')) || (coached && cur === 'library' && k === 'plan')
 
   const startWorkout = () => {

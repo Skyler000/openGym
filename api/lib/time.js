@@ -11,6 +11,10 @@ export const isoDay = (ms, offsetMin = 0) => shifted(ms, offsetMin).toISOString(
 export const monthKey = (ms, offsetMin = 0) => isoDay(ms, offsetMin).slice(0, 7)
 export const yearKey = (ms, offsetMin = 0) => isoDay(ms, offsetMin).slice(0, 4)
 
+// '24 Sept 2026' — a date for a sentence someone reads, such as a reminder.
+export const fmtDay = (ms, offsetMin = 0) =>
+  shifted(ms, offsetMin).toLocaleDateString('en-GB', { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' })
+
 // Calendar arithmetic on 'YYYY-MM-DD' strings. Anchoring at noon UTC keeps DST and the
 // offset out of it — a day step is always exactly one calendar day.
 export function shiftISO(iso, days) {

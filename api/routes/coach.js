@@ -1,8 +1,9 @@
 // Coach: runs a roster of clients. Invites them, renews and locks them, builds plans, assigns them,
 // and reads each client's progress. Every client lookup goes through ownClient, so a coach can only
 // ever reach clients who are linked to them.
-import { extendFrom, daysLeft, CLIENT_TERM_DAYS } from '../lib/access.js';
-import { compliance, clientSummary, bodyMetrics, monthlyReport } from '../lib/stats.js';
+import { extendFrom, daysLeft, CLIENT_TERM_DAYS, CLIENT_REMIND_DAYS } from '../lib/access.js';
+import { compliance, clientSummary, bodyMetrics, monthlyReport, rosterProgress, recentActivity } from '../lib/stats.js';
+import { coachBilling, coachEarningsSeries } from '../lib/billing.js';
 import { shiftISO } from '../lib/time.js';
 
 export const PLAN_CATEGORIES = ['Strength Training', 'Fat Loss', 'Muscle Building', 'Cardio', 'HIIT', 'Flexibility', 'Custom'];
@@ -79,6 +80,44 @@ export default function coachRoutes(ctx) {
   }
 
   return {
+    /* ---------- dashboard ---------- */
+    // Roster counts, money this month, who needs renewing, how clients are training, what they logged.
+    'GET /api/coach/dashboard': async (req, res) => {
+      const coach = requireCoach(req, res); if (!coach) return;
+      const now = Date.now(), t = today(), offset = ctx.TZ_OFFSET_MIN;
+      const clients = clientsOf(coach.id);
+      const states = new Map(clients.map(u => [u.id, readState(u.id)]));
+      const rows = clients.map(u => clientRow(u, now, t, states.get(u.id)));
+      const names = new Map(clients.map(u => [u.id, u.name]));
+      const n = s => rows.filter(r => r.access === s).length;
+      const due = r => r.access === 'active' && r.daysLeft != null && r.daysLeft <= CLIENT_REMIND_DAYS;
+      json(res, 200, {
+        counts: {
+          total: rows.length, active: n('active'), expired: n('expired'), paused: rows.length - n('active') - n('expired'),
+          due: rows.filter(due).length, live: rows.filter(r => r.live).length
+        },
+        billing: coachBilling(db.ledger, coach.id, now, offset),
+        earnings: coachEarningsSeries(db.ledger, coach.id, now, 6, offset),
+        renewalsDue: rows.filter(r => due(r) || r.access === 'expired')
+          .sort((a, b) => (a.daysLeft ?? -1e9) - (b.daysLeft ?? -1e9))
+          .map(r => ({ id: r.id, name: r.name, access: r.access, daysLeft: r.daysLeft, paidUntil: r.paidUntil })),
+        progress: rosterProgress(rows.map(r => ({
+          access: r.access, workouts30d: r.workouts30d, lastWorkout: r.lastWorkout, onPlan: !!r.assignment, rate: r.assignment?.rate ?? null
+        })), t),
+        clientStats: rows.map(r => ({
+          id: r.id, name: r.name, access: r.access, live: !!r.live, lastWorkout: r.lastWorkout, workouts30d: r.workouts30d,
+          rate: r.assignment?.rate ?? null, planName: r.assignment?.planName || null,
+          weight: r.weight, weightChange30d: r.weightChange30d, unit: r.unit
+        })).sort((a, b) => b.workouts30d - a.workouts30d || a.name.localeCompare(b.name)),
+        payments: db.ledger.filter(e => e.coachId === coach.id && e.type === 'client_monthly').sort(byNewest).slice(0, 8).map(e => ({
+          id: e.id, clientId: e.clientId, clientName: names.get(e.clientId) || 'Deleted client',
+          amount: e.amount, received: e.received ?? null, created: e.created, settled: !!e.settled
+        })),
+        activity: recentActivity(clients.map(u => ({ id: u.id, name: u.name, state: states.get(u.id) })), 15),
+        fee: db.settings.clientMonthlyFee
+      });
+    },
+
     /* ---------- clients ---------- */
     'GET /api/coach/clients': async (req, res) => {
       const coach = requireCoach(req, res); if (!coach) return;

@@ -32,6 +32,10 @@ import CoachPlans from './views/coach/Plans.jsx'
 import PlanBuilder from './views/coach/PlanBuilder.jsx'
 import CoachHub from './views/client/CoachHub.jsx'
 import Progress from './views/client/Progress.jsx'
+import SADashboard from './views/sa/Dashboard.jsx'
+import CoachDashboard from './views/coach/Dashboard.jsx'
+import Notifications from './views/Notifications.jsx'
+import { startNotificationPolling } from './lib/notifications.js'
 import { isSuperAdmin, isCoach, isClient, isActive, homeRoute } from './lib/roles.js'
 
 bindUI(useUI)   // lets the shared controls open sheets without importing the store at module scope
@@ -60,6 +64,12 @@ function Shell() {
   useEffect(() => {
     if ((isSuperAdmin(user) || isCoach(user)) && (loc.pathname === '/' || loc.pathname === '/home')) navigate(homeRoute(user), { replace: true })
   }, [user?.role])
+  // The bell's unread count, for any signed-in account — a paused one included: "your access is
+  // back" arrives as a notification, and re-reading who we are then lifts the lock screen by itself.
+  useEffect(() => {
+    if (!user?.id) return
+    return startNotificationPolling(() => useStore.getState().refreshMe())
+  }, [user?.id])
   // bound to the workout, not to the route — checking Stats mid-session keeps the screen on
   useWakeLock(!!S.active && S.keepAwake !== false)
 
@@ -82,11 +92,13 @@ function Shell() {
           {!authed ? <Login /> : !isActive(user) ? <Lock /> : (
             <Routes>
               {isSuperAdmin(user) && <>
-                <Route path="/sa" element={<SACoaches />} />
+                <Route path="/sa" element={<SADashboard />} />
+                <Route path="/sa/coaches" element={<SACoaches />} />
                 <Route path="/sa/coach/:id" element={<SACoachDetail />} />
               </>}
               {isCoach(user) && <>
-                <Route path="/c" element={<CoachClients />} />
+                <Route path="/c" element={<CoachDashboard />} />
+                <Route path="/c/clients" element={<CoachClients />} />
                 <Route path="/c/client/:id" element={<CoachClientDetail />} />
                 <Route path="/c/plans" element={<CoachPlans />} />
                 <Route path="/c/plan/:id" element={<PlanBuilder />} />
@@ -100,6 +112,7 @@ function Shell() {
               <Route path="/history" element={<History />} />
               <Route path="/library" element={<Library />} />
               <Route path="/progress" element={<Progress />} />
+              <Route path="/notifications" element={<Notifications />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<Navigate to={homeRoute(user)} replace />} />
             </Routes>

@@ -54,7 +54,7 @@ export default function CoachDetail() {
   const openSheet = useUI(s => s.openSheet)
   const { data, error, reload } = useApi('/api/sa/coach?id=' + encodeURIComponent(id))
 
-  const back = <button className="iconbtn" onClick={() => nav('/sa')} aria-label="Back"><Icon name="chevronLeft" /></button>
+  const back = <button className="iconbtn" onClick={() => nav('/sa/coaches')} aria-label="Back"><Icon name="chevronLeft" /></button>
   if (error) return <div className="narrow"><div className="hdr">{back}</div><div className="card small" style={{ color: 'var(--red)' }}>{error}</div></div>
   if (!data) return <div className="narrow"><div className="hdr">{back}</div><div className="muted small">Loading…</div></div>
 
@@ -77,7 +77,7 @@ export default function CoachDetail() {
     title: 'Delete ' + c.name + '?',
     message: 'Removes the coach’s account, passkeys and plans. Their payment history is kept.',
     confirmText: 'Delete coach', danger: true,
-    onConfirm: async () => { if (await post('/api/sa/coach/delete', { id: c.id })) { toast('Coach deleted'); nav('/sa') } }
+    onConfirm: async () => { if (await post('/api/sa/coach/delete', { id: c.id })) { toast('Coach deleted'); nav('/sa/coaches') } }
   })
 
   return <div className="narrow">

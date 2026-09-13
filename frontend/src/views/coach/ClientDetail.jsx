@@ -41,7 +41,7 @@ function topLifts(workouts, n) {
   return Object.keys(count).sort((a, b) => count[b] - count[a]).slice(0, n)
 }
 
-function RenewSheet({ client, fee, close, onDone }) {
+export function RenewSheet({ client, fee, close, onDone }) {
   const [received, setReceived] = useState(0)
   const save = async () => {
     const r = await post('/api/coach/client/renew', { id: client.id, received })
@@ -235,7 +235,7 @@ export default function ClientDetail() {
   const { data, error, reload } = useApi('/api/coach/client?id=' + encodeURIComponent(id))
   const [tab, setTab] = useState('overview')
 
-  const back = <button className="iconbtn" onClick={() => nav('/c')} aria-label="Back"><Icon name="chevronLeft" /></button>
+  const back = <button className="iconbtn" onClick={() => nav('/c/clients')} aria-label="Back"><Icon name="chevronLeft" /></button>
   if (error) return <div className="narrow"><div className="hdr">{back}</div><div className="card small" style={{ color: 'var(--red)' }}>{error}</div></div>
   if (!data) return <div className="narrow"><div className="hdr">{back}</div><div className="muted small">Loading…</div></div>
 
@@ -251,7 +251,7 @@ export default function ClientDetail() {
     title: 'Delete ' + c.name + '?',
     message: 'Deletes their account, workouts, measurements and photos. This can’t be undone. Renewals already recorded stay on your billing.',
     confirmText: 'Delete client', danger: true,
-    onConfirm: async () => { if (await post('/api/coach/client/delete', { id: c.id })) { toast('Client deleted'); nav('/c') } }
+    onConfirm: async () => { if (await post('/api/coach/client/delete', { id: c.id })) { toast('Client deleted'); nav('/c/clients') } }
   })
 
   return <div className="narrow">

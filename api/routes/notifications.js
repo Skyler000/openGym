@@ -10,6 +10,12 @@ export default function notificationRoutes(ctx) {
       json(res, 200, { notifications: mine, unread: mine.filter(n => !n.read).length });
     },
 
+    // Just the count, for the app to poll cheaply while it is open.
+    'GET /api/notifications/unread': async (req, res) => {
+      const user = requireUser(req, res); if (!user) return;
+      json(res, 200, { unread: db.notifications.filter(n => n.userId === user.id && !n.read).length });
+    },
+
     // Marks the given ids as read, or every unread notification when no ids are sent.
     'POST /api/notifications/read': async (req, res) => {
       const user = requireUser(req, res); if (!user) return;

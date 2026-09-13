@@ -64,6 +64,39 @@ export function monthlySeries(ledger, now, months = 12, offsetMin = 0) {
   return keys.map(k => ({ month: k, revenue: byMonth[k] }))
 }
 
+// A coach's money per month for the last `months` months, oldest first: what their clients paid
+// them (as the coach recorded it at renewal) and what those renewals cost in platform fees.
+export function coachEarningsSeries(ledger, coachId, now, months = 6, offsetMin = 0) {
+  const keys = lastMonths(now, months, offsetMin)
+  const rows = Object.fromEntries(keys.map(k => [k, { month: k, received: 0, fees: 0 }]))
+  for (const e of ledger) {
+    if (e.coachId !== coachId || e.type !== 'client_monthly') continue
+    const row = rows[monthKey(e.created, offsetMin)]
+    if (!row) continue
+    row.fees += e.amount || 0
+    row.received += e.received || 0
+  }
+  return keys.map(k => rows[k])
+}
+
+// Money in, newest first. One settlement pays many client renewals at once, so it is one row.
+export function recentCollections(ledger, limit = 10) {
+  const rows = []
+  const settlements = new Map()
+  for (const e of ledger) {
+    if (e.type === 'coach_annual') {
+      rows.push({ kind: 'annual', coachId: e.coachId, amount: e.amount, at: e.created, note: e.note || '' })
+    } else if (e.settled && e.settledAt) {
+      const key = e.coachId + ':' + e.settledAt
+      const s = settlements.get(key) || { kind: 'settlement', coachId: e.coachId, amount: 0, count: 0, at: e.settledAt }
+      s.amount += e.amount
+      s.count++
+      settlements.set(key, s)
+    }
+  }
+  return rows.concat([...settlements.values()]).sort((a, b) => b.at - a.at).slice(0, limit)
+}
+
 // Marks every unpaid client charge of one coach as settled. Mutates the ledger in place.
 export function settle(ledger, coachId, now, by) {
   let count = 0, amount = 0

@@ -79,6 +79,51 @@ export function bodyMetrics(state) {
   }
 }
 
+// The latest day a client logged anything about their body: weight, composition, tape or a photo.
+export function lastBodyLogDay(state) {
+  let last = null
+  for (const k of ['bodyweight', 'metrics', 'measure', 'photos']) {
+    for (const x of state?.[k] || []) if (x?.d && (!last || x.d > last)) last = x.d
+  }
+  return last
+}
+
+const setsDoneIn = w => (w.entries || []).reduce((n, e) => n + (e.sets || []).filter(s => s.done).length, 0)
+
+// What a coach's clients have been doing, newest first. `people` is [{ id, name, state }].
+export function recentActivity(people, limit = 15) {
+  const items = []
+  for (const { id, name, state } of people) {
+    const base = { clientId: id, name }
+    const unit = state?.unit || 'kg'
+    for (const w of state?.workouts || []) items.push({ ...base, kind: 'workout', d: w.d, at: w.end || w.start || 0, title: w.name || 'Workout', sets: setsDoneIn(w), prs: w.prs?.length || 0 })
+    for (const b of state?.bodyweight || []) items.push({ ...base, kind: 'weight', d: b.d, at: b.t || 0, value: b.w, unit })
+    for (const m of state?.metrics || []) items.push({ ...base, kind: 'metrics', d: m.d, at: 0, bodyFat: m.bf ?? null, muscleMass: m.mm ?? null, unit })
+    for (const m of state?.measure || []) items.push({ ...base, kind: 'measure', d: m.d, at: 0 })
+    for (const p of state?.photos || []) items.push({ ...base, kind: 'photo', d: p.d, at: 0 })
+  }
+  return items.filter(x => x.d)
+    .sort((a, b) => (a.d < b.d ? 1 : a.d > b.d ? -1 : b.at - a.at))
+    .slice(0, limit)
+}
+
+// Roster-wide progress from per-client rows: [{ access, workouts30d, lastWorkout, onPlan, rate }].
+// Being on a plan and having a compliance rate are not the same: a plan that starts today has no
+// session due yet, so its client is on a plan with nothing to average. `rated` counts the second.
+export function rosterProgress(rows, todayISO) {
+  const active = rows.filter(r => r.access === 'active')
+  const weekAgo = shiftISO(todayISO, -6)
+  const rates = active.map(r => r.rate).filter(r => r != null)
+  return {
+    activeClients: active.length,
+    workouts30d: rows.reduce((n, r) => n + (r.workouts30d || 0), 0),
+    trainedLast7d: active.filter(r => r.lastWorkout && r.lastWorkout >= weekAgo && r.lastWorkout <= todayISO).length,
+    onPlan: active.filter(r => r.onPlan || r.rate != null).length,
+    rated: rates.length,
+    avgCompliance: rates.length ? round2(rates.reduce((a, b) => a + b, 0) / rates.length) : null
+  }
+}
+
 // One calendar month ('YYYY-MM') of a client's training, for the coach's monthly report.
 export function monthlyReport(state, month) {
   const W = (state?.workouts || []).filter(w => w.d.slice(0, 7) === month)

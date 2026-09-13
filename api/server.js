@@ -12,6 +12,8 @@ import webpush from 'web-push';
 import { roleOf, accessOf, daysLeft, extendFrom, COACH_TERM_DAYS, CLIENT_TERM_DAYS } from './lib/access.js';
 import { DEFAULT_FEES } from './lib/billing.js';
 import { isoDay } from './lib/time.js';
+import { planReminders } from './lib/reminders.js';
+import { lastBodyLogDay } from './lib/stats.js';
 import superadminRoutes from './routes/superadmin.js';
 import coachRoutes from './routes/coach.js';
 import clientRoutes from './routes/client.js';
@@ -168,10 +170,34 @@ function notify(userId, { type, title, body, url }, { save = true } = {}) {
     db.notifications = db.notifications.filter(x => !drop.has(x.id));
   }
   if (save) saveDb();
-  sendPush(userId, { title, body: n.body, tag: type, url: n.url }).catch(() => {});
+  // Tagged per notification: two clients falling due on the same day are two alerts, not one.
+  sendPush(userId, { title, body: n.body, tag: n.id, url: n.url }).catch(() => {});
   publishEvent(userId, 'notification', n);
   return n;
 }
+
+/* ---------- renewal reminders, expiry notices, progress check-ins ---------- */
+// Access never waits on this — it is derived on every request. The scheduler only decides whom to
+// tell, and the marker it saves on each account (remindedFor / expiredFor / progressRemindedAt)
+// keeps every notice to once, however often it runs and however many restarts it sees.
+const REMINDER_EVERY_MS = 10 * 60000;
+function runReminders(now = Date.now()) {
+  const items = planReminders(db.users, now, {
+    adminUids: ADMIN_UIDS, offsetMin: TZ_OFFSET_MIN, lastBodyLog: uid => lastBodyLogDay(readState(uid))
+  });
+  let sent = 0;
+  for (const item of items) {
+    const u = userById(item.userId);
+    if (!u) continue;
+    Object.assign(u, item.mark);
+    for (const n of item.notices) { notify(n.to, n, { save: false }); sent++; }
+  }
+  if (items.length) { saveDb(); console.log(`reminders: ${sent} notification(s) sent`); }
+  return sent;
+}
+const runRemindersSafely = () => { try { runReminders(); } catch (e) { console.error('reminders failed', e); } };
+setTimeout(runRemindersSafely, 15000).unref();
+setInterval(runRemindersSafely, REMINDER_EVERY_MS).unref();
 
 // Rest-timer alerts: client schedules on start/extend, cancels on skip or on-screen completion —
 // this only fires when the tab was backgrounded/suspended and never got to cancel it itself.
@@ -584,7 +610,7 @@ const ctx = {
   db, DATA, ADMIN_UIDS, TZ_OFFSET_MIN,
   json, readBody, saveDb, readState, rid, today,
   readSession, requireUser, requireRole, role, access, publicUser, userById, ownClient, canChat,
-  notify, sendPush, livePresence, newInviteCode, removeUserData
+  notify, sendPush, livePresence, newInviteCode, removeUserData, runReminders
 };
 Object.assign(routes,
   superadminRoutes(ctx), coachRoutes(ctx), clientRoutes(ctx), mediaRoutes(ctx), notificationRoutes(ctx));
