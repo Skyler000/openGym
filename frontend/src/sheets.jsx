@@ -7,7 +7,7 @@ import { lastEntryFor, bestWeightFor, buildSets, effectiveRoutineId, workoutVolu
 import { beep, vibrate } from './lib/sound.js'
 import { t, instrFor, getLang, INSTR_LANGS } from './lib/i18n.js'
 import { nav } from './lib/nav.js'
-import { PRESETS, presetByKey, buildPreset } from './lib/presets.js'
+import { PRESETS, PRESET_CATEGORIES, presetByKey, buildPreset, presetItem, schemeOf } from './lib/presets.js'
 import Media, { Thumb } from './components/Media.jsx'
 import Stepper from './components/Stepper.jsx'
 import Icon from './components/Icon.jsx'
@@ -64,21 +64,26 @@ function PresetSheet({ close }) {
 
   if (!preset) return <>
     <h3>{t('Training programs')}</h3>
-    <div className="muted small" style={{ marginBottom: 12 }}>
-      {t('Published programs, set up ready to run. Loading one adds its routines and fills in the weekdays it uses — anything already in your plan is left alone.')}
+    <div className="muted small" style={{ marginBottom: 4 }}>
+      {t('Programs and templates, set up ready to run. Loading one adds its routines and fills in the weekdays it uses — anything already in your plan is left alone.')}
     </div>
-    <div className="list">
-      {PRESETS.map(p => (
-        <div key={p.key} className="item tap" onClick={() => setOpen(p.key)}>
-          <div className="thumb thumb-x"><Icon name={glyphOf(p.glyph)} /></div>
-          <div className="grow">
-            <div className="tt">{p.name}</div>
-            <div className="ss">{p.days} · {p.level} · {p.kit}</div>
-          </div>
-          <Icon name="chevronRight" className="chev" />
+    {PRESET_CATEGORIES.map(cat => (
+      <div key={cat}>
+        <h4 className="sec">{t(cat)}</h4>
+        <div className="list">
+          {PRESETS.filter(p => p.category === cat).map(p => (
+            <div key={p.key} className="item tap" onClick={() => setOpen(p.key)}>
+              <div className="thumb thumb-x"><Icon name={glyphOf(p.glyph)} /></div>
+              <div className="grow">
+                <div className="tt">{p.name}</div>
+                <div className="ss">{p.days} · {p.level} · {p.kit}</div>
+              </div>
+              <Icon name="chevronRight" className="chev" />
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
+      </div>
+    ))}
   </>
 
   const dayLabels = Object.entries(preset.week)
@@ -99,12 +104,13 @@ function PresetSheet({ close }) {
     {preset.routines.map(([name, , , list]) => (
       <div key={name} style={{ marginTop: 14 }}>
         <div className="muted small" style={{ fontWeight: 600, marginBottom: 4 }}>{name}</div>
-        {list.map(([id, sets, reps]) => (
-          <div key={id + name} className="small row between" style={{ padding: '2px 0' }}>
-            <span className="capitalize">{EXIDX[id] ? EXIDX[id].n : id}</span>
-            <span className="muted">{sets} × {reps}</span>
+        {list.map((item, i) => {
+          const cfg = presetItem(item)
+          return <div key={i} className="small row between" style={{ padding: '2px 0' }}>
+            <span className="capitalize">{EXIDX[cfg.id] ? EXIDX[cfg.id].n : cfg.id}</span>
+            <span className="muted">{schemeOf(cfg)}</span>
           </div>
-        ))}
+        })}
       </div>
     ))}
 

@@ -9,16 +9,26 @@ import {
   generateAuthenticationOptions, verifyAuthenticationResponse
 } from '@simplewebauthn/server';
 import webpush from 'web-push';
+import { roleOf, accessOf, daysLeft, extendFrom, COACH_TERM_DAYS, CLIENT_TERM_DAYS } from './lib/access.js';
+import { DEFAULT_FEES } from './lib/billing.js';
+import { isoDay } from './lib/time.js';
+import superadminRoutes from './routes/superadmin.js';
+import coachRoutes from './routes/coach.js';
+import clientRoutes from './routes/client.js';
+import mediaRoutes from './routes/media.js';
+import notificationRoutes from './routes/notifications.js';
 
 const PORT = +(process.env.PORT || 3000);
 const DATA = process.env.DATA_DIR || '/data';
 const RP_ID = process.env.RP_ID || 'localhost';
 const ORIGIN = process.env.ORIGIN || 'http://localhost:8080';
 const RP_NAME = process.env.RP_NAME || 'WinterARC';
-// Admin dashboard (issue): admins are matched by uid; INVITE_ONLY gates new signups behind a
-// code the admin generates. Both default off so a fresh self-hosted instance stays open.
+// Super admins are matched by uid, or by the `admin` flag the very first account is given. Once any
+// account exists, registering always needs an invite — a coach invite from a super admin, or a client
+// invite from a coach — because the invite is what decides the role and who pays for the account.
 const ADMIN_UIDS = (process.env.ADMIN_UIDS || '').split(',').map(s => s.trim()).filter(Boolean);
-const INVITE_ONLY = /^(1|true|yes|on)$/i.test(process.env.INVITE_ONLY || '');
+// Day and month boundaries for billing and compliance. Defaults to IST (+05:30): fees are in rupees.
+const TZ_OFFSET_MIN = process.env.TZ_OFFSET_MIN === undefined || process.env.TZ_OFFSET_MIN === '' ? 330 : +process.env.TZ_OFFSET_MIN;
 // 90 days keeps someone who trains a few times a week permanently signed in without a stolen
 // cookie staying good for a year. Overridable because a family instance and one on the open
 // internet don't want the same number. Only affects cookies minted from now on — the expiry is
@@ -38,9 +48,25 @@ const SECRET = fs.readFileSync(secretFile, 'utf8').trim();
 const dbFile = path.join(DATA, 'db.json');
 let db = { users: [], creds: [], subs: [], invites: [] };
 try { db = JSON.parse(fs.readFileSync(dbFile, 'utf8')); } catch {}
-db.subs = db.subs || [];
-db.invites = db.invites || [];
-const isAdmin = user => !!user && (user.admin === true || ADMIN_UIDS.includes(user.id));
+for (const k of ['subs', 'invites', 'ledger', 'plans', 'assignments', 'groups', 'notifications']) db[k] = db[k] || [];
+db.settings = { ...DEFAULT_FEES, ...(db.settings || {}) };
+
+const rid = () => crypto.randomBytes(12).toString('base64url');
+const today = () => isoDay(Date.now(), TZ_OFFSET_MIN);
+const userById = id => (id && db.users.find(u => u.id === id)) || null;
+const role = user => roleOf(user, ADMIN_UIDS);
+const access = user => accessOf(user, db.users, Date.now(), ADMIN_UIDS);
+const ownClient = (coach, id) => { const u = userById(id); return u && role(u) === 'client' && u.coachId === coach.id ? u : null; };
+
+// What the app is told about the signed-in account. A client is never sent a price or an expiry:
+// their coach pays for their access, and that arrangement is the coach's to explain.
+function publicUser(u) {
+  const r = role(u);
+  const out = { id: u.id, name: u.name, role: r, admin: r === 'superadmin', access: access(u) };
+  if (r === 'coach') { out.paidUntil = u.paidUntil || null; out.daysLeft = daysLeft(u.paidUntil, Date.now()); }
+  if (r === 'client') { const c = userById(u.coachId); out.coachId = u.coachId || null; out.coachName = c ? c.name : null; }
+  return out;
+}
 function saveDb() { atomicWrite(dbFile, JSON.stringify(db, null, 2)); }
 function atomicWrite(file, content) {
   const tmp = file + '.tmp';
@@ -50,6 +76,53 @@ function atomicWrite(file, content) {
 const stateFile = uid => path.join(DATA, 'state-' + uid.replace(/[^a-zA-Z0-9_-]/g, '') + '.json');
 function readState(uid) {
   try { return JSON.parse(fs.readFileSync(stateFile(uid), 'utf8')); } catch { return null; }
+}
+
+// Everything stored for an account outside db.json: its synced state and the files it uploaded.
+function removeUserData(uid) {
+  try { fs.unlinkSync(stateFile(uid)); } catch {}
+  const dir = path.join(DATA, 'media');
+  let files = [];
+  try { files = fs.readdirSync(dir).filter(f => f.endsWith('.json')); } catch { return; }
+  for (const f of files) {
+    try {
+      const m = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+      if (m.owner !== uid && m.peer !== uid) continue;
+      fs.unlinkSync(path.join(dir, f));
+      try { fs.unlinkSync(path.join(dir, m.id + '.bin')); } catch {}
+    } catch {}
+  }
+}
+
+// 16 hex chars = 64 bits. /api/register/options tells a caller whether a code is valid and the app
+// has no rate limiting of its own, so the code itself has to be the thing not worth guessing.
+function newInviteCode() {
+  let code;
+  do { code = crypto.randomBytes(8).toString('hex').toUpperCase(); } while (db.invites.some(i => i.code === code));
+  return code;
+}
+
+// Why a code can't be used to register, or null if it can. The first account on an empty instance
+// needs no code at all: it becomes the super admin.
+function inviteProblem(code) {
+  if (db.users.length === 0) return null;
+  const inv = db.invites.find(i => i.code === code && !i.usedBy && !i.revoked);
+  if (!inv || (inv.kind !== 'coach' && inv.kind !== 'client')) return 'a valid invite code is required';
+  if (inv.kind === 'client') {
+    const coach = userById(inv.coachId);
+    if (!coach || access(coach) !== 'active') return 'this invite is not active right now — ask your coach';
+  }
+  return null;
+}
+
+// Messaging runs strictly between a coach and their own client, and only while both are active.
+function canChat(user, peerId) {
+  const peer = userById(peerId);
+  if (!peer || access(user) !== 'active' || access(peer) !== 'active') return false;
+  const r = role(user), pr = role(peer);
+  if (r === 'coach' && pr === 'client') return peer.coachId === user.id;
+  if (r === 'client' && pr === 'coach') return user.coachId === peer.id;
+  return false;
 }
 
 /* ---------- push notifications (Web Push / VAPID) ---------- */
@@ -80,6 +153,24 @@ async function sendPush(userId, payload) {
     }
   }));
   if (dirty) saveDb();
+}
+
+// An in-app notification (kept, and shown in the app's feed) plus a push to any subscribed device.
+// Push needs HTTPS and a service worker, so the feed is the one that always arrives.
+const NOTIFY_KEEP = 100;
+let publishEvent = () => {};   // replaced once the live event stream is wired up
+function notify(userId, { type, title, body, url }, { save = true } = {}) {
+  const n = { id: rid(), userId, type, title, body: body || '', url: url || null, created: Date.now(), read: false };
+  db.notifications.push(n);
+  const mine = db.notifications.filter(x => x.userId === userId);
+  if (mine.length > NOTIFY_KEEP) {
+    const drop = new Set(mine.slice(0, mine.length - NOTIFY_KEEP).map(x => x.id));
+    db.notifications = db.notifications.filter(x => !drop.has(x.id));
+  }
+  if (save) saveDb();
+  sendPush(userId, { title, body: n.body, tag: type, url: n.url }).catch(() => {});
+  publishEvent(userId, 'notification', n);
+  return n;
 }
 
 // Rest-timer alerts: client schedules on start/extend, cancels on skip or on-screen completion —
@@ -188,11 +279,20 @@ function readSession(req) {
   if (!Number.isInteger(claimed) || claimed !== sessionVersion(user)) return null;
   return user;
 }
-// Guard for /api/admin/* — resolves the caller and 401/403s if they aren't an admin.
-function requireAdmin(req, res) {
+function requireUser(req, res) {
   const user = readSession(req);
   if (!user) { json(res, 401, { error: 'not signed in' }); return null; }
-  if (!isAdmin(user)) { json(res, 403, { error: 'forbidden' }); return null; }
+  return user;
+}
+// Resolves the caller and 401/403s unless they hold `want`. By default the account must also be
+// active: an expired coach or a locked client keeps their sign-in, so the app can explain what
+// happened, but gets no further than /api/me and their notifications.
+function requireRole(req, res, want, { active = true } = {}) {
+  const user = requireUser(req, res);
+  if (!user) return null;
+  if (role(user) !== want) { json(res, 403, { error: 'forbidden' }); return null; }
+  const a = access(user);
+  if (active && a !== 'active') { json(res, 403, { error: 'access paused', access: a }); return null; }
   return user;
 }
 function sessionCookie(user) {
@@ -221,12 +321,12 @@ function json(res, code, obj, extraHeaders) {
   res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...(extraHeaders || {}) });
   res.end(body);
 }
-function readBody(req) {
+function readBody(req, limit = MAX_BODY) {
   return new Promise((resolve, reject) => {
     let size = 0; const chunks = [];
     req.on('data', d => {
       size += d.length;
-      if (size > MAX_BODY) { reject(new Error('body too large')); req.destroy(); return; }
+      if (size > limit) { reject(new Error('body too large')); req.destroy(); return; }
       chunks.push(d);
     });
     req.on('end', () => {
@@ -256,12 +356,12 @@ const routes = {
   'GET /api/health': async (req, res) => json(res, 200, { ok: true, users: db.users.length }),
 
   // Public config the login screen needs before anyone is signed in.
-  'GET /api/config': async (req, res) => json(res, 200, { invite_only: INVITE_ONLY }),
+  'GET /api/config': async (req, res) => json(res, 200, { invite_only: db.users.length > 0 }),
 
   'GET /api/me': async (req, res) => {
     const user = readSession(req);
     if (!user) return json(res, 401, { error: 'not signed in' });
-    json(res, 200, { user: { id: user.id, name: user.name, admin: isAdmin(user) } });
+    json(res, 200, { user: publicUser(user) });
   },
 
   'POST /api/register/options': async (req, res) => {
@@ -269,8 +369,8 @@ const routes = {
     const name = String(body.name || '').trim().slice(0, 40);
     if (!name) return json(res, 400, { error: 'name required' });
     const code = String(body.code || '').trim().toUpperCase();
-    if (INVITE_ONLY && !db.invites.some(i => i.code === code && !i.usedBy && !i.revoked))
-      return json(res, 403, { error: 'a valid invite code is required' });
+    const problem = inviteProblem(code);
+    if (problem) return json(res, 403, { error: problem });
     const uid = crypto.randomBytes(12).toString('base64url');
     const options = await generateRegistrationOptions({
       rpName: RP_NAME, rpID: RP_ID,
@@ -300,14 +400,33 @@ const routes = {
     if (!verification.verified) return json(res, 400, { error: 'not verified' });
     const { credential } = verification.registrationInfo;
     if (db.creds.find(x => x.id === credential.id)) return json(res, 409, { error: 'credential already registered' });
-    // Re-check the invite at the last moment (it may have been used/revoked since options), then burn it.
-    let invite = null;
-    if (INVITE_ONLY) {
-      invite = db.invites.find(i => i.code === c.code && !i.usedBy && !i.revoked);
-      if (!invite) return json(res, 403, { error: 'invite code is no longer valid — ask for a new one' });
+    // Re-check the invite at the last moment (it may have been used or revoked since the options call),
+    // then burn it. Only the very first account on an empty instance registers without one.
+    const bootstrap = db.users.length === 0;
+    const problem = inviteProblem(c.code);
+    if (problem) return json(res, 403, { error: problem });
+    const now = Date.now();
+    const user = { id: c.uid, name: c.name, created: new Date(now).toISOString() };
+    if (bootstrap) {
+      user.admin = true;
+    } else {
+      const invite = db.invites.find(i => i.code === c.code && !i.usedBy && !i.revoked);
+      user.invitedBy = invite.code; invite.usedBy = user.id; invite.usedAt = user.created;
+      if (invite.kind === 'coach') {
+        user.role = 'coach';
+        if (invite.prepaid !== false) {
+          user.paidUntil = extendFrom(null, now, COACH_TERM_DAYS);
+          db.ledger.push({ id: rid(), type: 'coach_annual', coachId: user.id, amount: db.settings.coachAnnualFee, periodStart: now, periodEnd: user.paidUntil, created: now, recordedBy: invite.createdBy || null, settled: true, settledAt: now, note: 'First year, recorded with the invite' });
+        }
+      } else {
+        // The first month is charged to the coach the moment their invite is used: the coach chose
+        // to create that client's place when they generated the code.
+        user.role = 'client';
+        user.coachId = invite.coachId;
+        user.paidUntil = extendFrom(null, now, CLIENT_TERM_DAYS);
+        db.ledger.push({ id: rid(), type: 'client_monthly', coachId: invite.coachId, clientId: user.id, amount: db.settings.clientMonthlyFee, periodStart: now, periodEnd: user.paidUntil, created: now, recordedBy: invite.coachId, settled: false, note: 'First month, charged when the invite was used' });
+      }
     }
-    const user = { id: c.uid, name: c.name, created: new Date().toISOString() };
-    if (invite) { user.invitedBy = invite.code; invite.usedBy = user.id; invite.usedAt = user.created; }
     db.users.push(user);
     db.creds.push({
       id: credential.id, userId: user.id,
@@ -316,7 +435,7 @@ const routes = {
       transports: body.credential?.response?.transports || []
     });
     saveDb();
-    json(res, 200, { user: { id: user.id, name: user.name, admin: isAdmin(user) } }, { 'Set-Cookie': sessionCookie(user) });
+    json(res, 200, { user: publicUser(user) }, { 'Set-Cookie': sessionCookie(user) });
   },
 
   'POST /api/login/options': async (req, res) => {
@@ -355,7 +474,7 @@ const routes = {
     const user = db.users.find(u => u.id === cred.userId);
     if (!user) return json(res, 500, { error: 'user missing' });
     if (user.disabled) return json(res, 403, { error: 'this account has been disabled' });
-    json(res, 200, { user: { id: user.id, name: user.name, admin: isAdmin(user) } }, { 'Set-Cookie': sessionCookie(user) });
+    json(res, 200, { user: publicUser(user) }, { 'Set-Cookie': sessionCookie(user) });
   },
 
   'POST /api/logout': async (req, res) => json(res, 200, { ok: true }, { 'Set-Cookie': clearCookie }),
@@ -384,6 +503,8 @@ const routes = {
   'PUT /api/data': async (req, res) => {
     const user = readSession(req);
     if (!user) return json(res, 401, { error: 'not signed in' });
+    // A paused account keeps its data but can't add to it until access is restored.
+    if (access(user) !== 'active') return json(res, 403, { error: 'access paused', access: access(user) });
     const body = await readBody(req);
     if (!body.state || typeof body.state !== 'object') return json(res, 400, { error: 'state required' });
     delete body.state.active;              // in-progress workouts stay device-local
@@ -454,92 +575,19 @@ const routes = {
     } else presence.delete(user.id);
     json(res, 200, { ok: true });
   },
-
-  /* ---------- admin dashboard ---------- */
-  // One row per user, cheap enough for a personal instance (reads each state file once).
-  'GET /api/admin/users': async (req, res) => {
-    if (!requireAdmin(req, res)) return;
-    const users = db.users.map(u => {
-      const S = readState(u.id) || {};
-      const workouts = S.workouts || [];
-      const last = workouts[workouts.length - 1];
-      return {
-        id: u.id, name: u.name, created: u.created || null,
-        disabled: !!u.disabled, admin: isAdmin(u), invitedBy: u.invitedBy || null,
-        workouts: workouts.length,
-        lastWorkout: last ? last.d : null,
-        lastSync: S._ts || null,
-        hasPush: db.subs.some(s => s.userId === u.id),
-        live: livePresence(u.id)
-      };
-    });
-    json(res, 200, { users, invite_only: INVITE_ONLY, now: Date.now() });
-  },
-
-  // Drill-down: full workout history + body-weight log for one user.
-  'GET /api/admin/user': async (req, res) => {
-    if (!requireAdmin(req, res)) return;
-    const id = new URL(req.url, 'http://x').searchParams.get('id');
-    const u = db.users.find(x => x.id === id);
-    if (!u) return json(res, 404, { error: 'no such user' });
-    const S = readState(u.id) || {};
-    json(res, 200, {
-      user: { id: u.id, name: u.name, created: u.created || null, disabled: !!u.disabled, admin: isAdmin(u), invitedBy: u.invitedBy || null },
-      unit: S.unit || 'kg',
-      lastSync: S._ts || null,
-      routines: (S.routines || []).map(r => ({ id: r.id, name: r.name, emoji: r.emoji, count: (r.ex || []).length })),
-      bodyweight: S.bodyweight || [],
-      workouts: (S.workouts || []).slice().reverse()   // newest first for display
-    });
-  },
-
-  'POST /api/admin/user/disable': async (req, res) => {
-    if (!requireAdmin(req, res)) return;
-    const body = await readBody(req);
-    const u = db.users.find(x => x.id === body.id);
-    if (!u) return json(res, 404, { error: 'no such user' });
-    if (isAdmin(u)) return json(res, 400, { error: 'cannot disable an admin' });
-    u.disabled = !!body.disabled;
-    if (u.disabled) presence.delete(u.id);   // drop them off "training now" at once
-    saveDb();
-    json(res, 200, { ok: true, id: u.id, disabled: u.disabled });
-  },
-
-  'GET /api/admin/invites': async (req, res) => {
-    if (!requireAdmin(req, res)) return;
-    // resolve usedBy uid → name for display
-    const invites = db.invites.map(i => ({
-      ...i, usedByName: i.usedBy ? (db.users.find(u => u.id === i.usedBy) || {}).name || null : null
-    }));
-    json(res, 200, { invites, invite_only: INVITE_ONLY });
-  },
-
-  'POST /api/admin/invites/new': async (req, res) => {
-    const admin = requireAdmin(req, res); if (!admin) return;
-    const body = await readBody(req);
-    let code;
-    // 16 hex chars = 64 bits, up from 8 chars / 32 bits. The app has no rate limiting by design
-    // (that's the reverse proxy's job) and /api/register/options tells a caller whether a code is
-    // good, so the code itself has to be the thing that isn't worth guessing. Codes already in
-    // db.json keep working — validation is an exact string compare, never a length or format check.
-    do { code = crypto.randomBytes(8).toString('hex').toUpperCase(); } while (db.invites.some(i => i.code === code));
-    const invite = { code, note: String(body.note || '').slice(0, 60), createdBy: admin.id, created: new Date().toISOString() };
-    db.invites.push(invite);
-    saveDb();
-    json(res, 200, { invite });
-  },
-
-  'POST /api/admin/invites/revoke': async (req, res) => {
-    if (!requireAdmin(req, res)) return;
-    const body = await readBody(req);
-    const inv = db.invites.find(i => i.code === String(body.code || '').toUpperCase());
-    if (!inv) return json(res, 404, { error: 'no such code' });
-    if (inv.usedBy) return json(res, 400, { error: 'already used — cannot revoke' });
-    db.invites = db.invites.filter(i => i.code !== inv.code);
-    saveDb();
-    json(res, 200, { ok: true });
-  }
 };
+
+/* ---------- role routes ---------- */
+// Each module receives the shared helpers rather than importing them, so the auth, session and
+// storage code above stays the one definition of how a request is identified and saved.
+const ctx = {
+  db, DATA, ADMIN_UIDS, TZ_OFFSET_MIN,
+  json, readBody, saveDb, readState, rid, today,
+  readSession, requireUser, requireRole, role, access, publicUser, userById, ownClient, canChat,
+  notify, sendPush, livePresence, newInviteCode, removeUserData
+};
+Object.assign(routes,
+  superadminRoutes(ctx), coachRoutes(ctx), clientRoutes(ctx), mediaRoutes(ctx), notificationRoutes(ctx));
 
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');

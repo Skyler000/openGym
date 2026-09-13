@@ -8,7 +8,12 @@ export const webauthnOK = () => !!(window.PublicKeyCredential && navigator.crede
 export async function api(path, opts) {
   const r = await fetch(path, Object.assign({ headers: { 'Content-Type': 'application/json' } }, opts))
   const data = await r.json().catch(() => ({}))
-  if (!r.ok) { const e = new Error(data.error || ('HTTP ' + r.status)); e.status = r.status; throw e }
+  if (!r.ok) {
+    // A paused account is refused with its access state. Say so, so the app can switch to the lock
+    // screen on this request rather than only after the next reload.
+    if (r.status === 403 && data.access) window.dispatchEvent(new CustomEvent('winterarc:access', { detail: data.access }))
+    const e = new Error(data.error || ('HTTP ' + r.status)); e.status = r.status; throw e
+  }
   return data
 }
 

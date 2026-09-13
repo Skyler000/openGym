@@ -23,7 +23,16 @@ import Stats from './views/Stats.jsx'
 import History from './views/History.jsx'
 import Library from './views/Library.jsx'
 import Settings from './views/Settings.jsx'
-import Admin from './views/Admin.jsx'
+import Lock from './views/Lock.jsx'
+import SACoaches from './views/sa/Coaches.jsx'
+import SACoachDetail from './views/sa/CoachDetail.jsx'
+import CoachClients from './views/coach/Clients.jsx'
+import CoachClientDetail from './views/coach/ClientDetail.jsx'
+import CoachPlans from './views/coach/Plans.jsx'
+import PlanBuilder from './views/coach/PlanBuilder.jsx'
+import CoachHub from './views/client/CoachHub.jsx'
+import Progress from './views/client/Progress.jsx'
+import { isSuperAdmin, isCoach, isClient, isActive, homeRoute } from './lib/roles.js'
 
 bindUI(useUI)   // lets the shared controls open sheets without importing the store at module scope
 
@@ -47,6 +56,10 @@ function Shell() {
   useEffect(() => { document.documentElement.lang = S.lang || 'en' }, [langV, S.lang])
   // every tab/route change starts at the top of the page
   useEffect(() => { window.scrollTo(0, 0) }, [loc.pathname])
+  // Coaches and the super admin land on their own home rather than the client tracker.
+  useEffect(() => {
+    if ((isSuperAdmin(user) || isCoach(user)) && (loc.pathname === '/' || loc.pathname === '/home')) navigate(homeRoute(user), { replace: true })
+  }, [user?.role])
   // bound to the workout, not to the route — checking Stats mid-session keeps the screen on
   useWakeLock(!!S.active && S.keepAwake !== false)
 
@@ -65,8 +78,20 @@ function Shell() {
           re-mounts the boundary, so the tab bar is always a way out */}
       <div id="app" className="vfade" key={loc.pathname}>
         <ErrorBoundary>
-          {!authed ? <Login /> : (
+          {/* A paused account keeps its sign-in but sees only the lock screen, which explains why. */}
+          {!authed ? <Login /> : !isActive(user) ? <Lock /> : (
             <Routes>
+              {isSuperAdmin(user) && <>
+                <Route path="/sa" element={<SACoaches />} />
+                <Route path="/sa/coach/:id" element={<SACoachDetail />} />
+              </>}
+              {isCoach(user) && <>
+                <Route path="/c" element={<CoachClients />} />
+                <Route path="/c/client/:id" element={<CoachClientDetail />} />
+                <Route path="/c/plans" element={<CoachPlans />} />
+                <Route path="/c/plan/:id" element={<PlanBuilder />} />
+              </>}
+              {isClient(user) && <Route path="/coach" element={<CoachHub />} />}
               <Route path="/home" element={<Home />} />
               <Route path="/plan" element={<Plan />} />
               <Route path="/plan/r/:id" element={<RoutineEdit />} />
@@ -74,9 +99,9 @@ function Shell() {
               <Route path="/stats" element={<Stats />} />
               <Route path="/history" element={<History />} />
               <Route path="/library" element={<Library />} />
+              <Route path="/progress" element={<Progress />} />
               <Route path="/settings" element={<Settings />} />
-              <Route path="/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
-              <Route path="*" element={<Navigate to="/home" replace />} />
+              <Route path="*" element={<Navigate to={homeRoute(user)} replace />} />
             </Routes>
           )}
         </ErrorBoundary>

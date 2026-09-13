@@ -10,6 +10,8 @@ export const DEF = {
   unit: 'kg', restSec: 90, sound: true, keepAwake: true, lang: 'en',
   theme: 'dark', accent: 'lime', body: 'male', targetW: null,
   bodyweight: [], routines: [], week: {}, dayPlan: {},
+  // Body metrics beyond weight, for the Progress screen and a coach's view of it.
+  height: null, metrics: [], measure: [], photos: [],
   exWeights: {}, workouts: [], active: null, customEx: [], gifSize: 'full',
   // effort: which per-set effort scale is logged — 'none' | 'rir' | 'rpe'. null, not 'none', so
   // that a profile which never chose (loaded state is overlaid on DEF, on every path: local,
@@ -69,6 +71,10 @@ export const useStore = create((set, get) => {
       get().pushState()
     }
   })
+
+  // A request refused as "access paused" means this account's access changed while the app was open
+  // (a coach paused it, a subscription ran out). Re-reading who we are brings up the lock screen.
+  window.addEventListener('winterarc:access', () => { if (get().user) get().refreshMe() })
 
   // Everything a sign-out leaves behind on this device, whichever way it was triggered.
   const clearLocalSession = () => {
@@ -135,6 +141,18 @@ export const useStore = create((set, get) => {
       await get().pushState()   // never throws — stores gym_dirty and moves on when offline
       await api('/api/logout/all', { method: 'POST', body: '{}' })
       clearLocalSession()
+    },
+
+    // Re-reads who we are — after a lock screen's "Check again", or anything that may have changed
+    // this account's access. Pulls the data back in once access is restored.
+    async refreshMe() {
+      try {
+        const { user } = await api('/api/me')
+        get().setUser(user)
+        if (user.access === 'active') await get().pullState()
+      } catch (e) {
+        if (e.status === 401) get().setUser(null)
+      }
     },
 
     // Demo build only: drop the seeded example profile back in (Settings → "Reset demo data").

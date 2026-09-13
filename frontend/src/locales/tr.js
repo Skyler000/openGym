@@ -442,7 +442,7 @@ export default {
   'Use this weekly schedule': 'Bu hafta programını kullan',
   'Replaces your current Mon–Sun assignments.': 'Mevcut Pzt–Paz atamanı değiştirir.',
   'Added {0} routines to your plan': 'Planına {0} rutin eklendi',
-  'this isn’t an WinterARC plan file': 'bu bir WinterARC plan dosyası değil',
+  'this isn’t a WinterARC plan file': 'bu bir WinterARC plan dosyası değil',
   'Shared routine': 'Paylaşılan rutin',
   'Unknown exercise': 'Bilinmeyen egzersiz',
   'Weekly Training Plan': 'Haftalık antrenman planı',

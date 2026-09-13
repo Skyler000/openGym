@@ -442,7 +442,7 @@ export default {
   'Use this weekly schedule': 'Использовать это расписание недели',
   'Replaces your current Mon–Sun assignments.': 'Заменяет твоё текущее распределение пн–вс.',
   'Added {0} routines to your plan': 'В твой план добавлено программ: {0}',
-  'this isn’t an WinterARC plan file': 'это не файл плана WinterARC',
+  'this isn’t a WinterARC plan file': 'это не файл плана WinterARC',
   'Shared routine': 'Общая программа',
   'Unknown exercise': 'Неизвестное упражнение',
   'Weekly Training Plan': 'Недельный план тренировок',

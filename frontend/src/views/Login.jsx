@@ -12,7 +12,7 @@ function RegisterSheet({ close }) {
   const { setUser, pushState, pullState } = useStore()
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
-  const [inviteOnly, setInviteOnly] = useState(false)
+  const [inviteOnly, setInviteOnly] = useState(null)
   const ref = useRef(null)
   useEffect(() => { setTimeout(() => ref.current?.focus(), 250) }, [])
   useEffect(() => { api('/api/config').then(c => setInviteOnly(!!c.invite_only)).catch(() => {}) }, [])
@@ -31,6 +31,7 @@ function RegisterSheet({ close }) {
     <h3>{t('Create your profile')}</h3>
     <div className="muted small" style={{ marginBottom: 14 }}>{t('Pick a name, then confirm with {0}. The passkey is saved in your device — no password needed.', BIO)}</div>
     <input ref={ref} className="input" placeholder={t('Your name')} maxLength={40} value={name} onChange={e => setName(e.target.value)} />
+    {inviteOnly === false && <div className="dim small" style={{ marginTop: 8 }}>{t('This is the first account on this server — it will be the administrator.')}</div>}
     {inviteOnly && <>
       <div style={{ height: 10 }} />
       <input className="input" placeholder={t('Invite code')} maxLength={40} value={code}

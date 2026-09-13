@@ -460,7 +460,7 @@ export default {
   'Use this weekly schedule': 'Diesen Wochenplan verwenden',
   'Replaces your current Mon–Sun assignments.': 'Ersetzt deine aktuelle Mo–So-Belegung.',
   'Added {0} routines to your plan': '{0} Routinen zu deinem Plan hinzugefügt',
-  'this isn’t an WinterARC plan file': 'das ist keine WinterARC-Plandatei',
+  'this isn’t a WinterARC plan file': 'das ist keine WinterARC-Plandatei',
   'Shared routine': 'Geteilte Routine',
   'Unknown exercise': 'Unbekannte Übung',
   'Weekly Training Plan': 'Wochen-Trainingsplan',

@@ -74,6 +74,21 @@ export default function Home() {
       </div>
     </div>
 
+    {user?.role === 'client' && user.coachName && (
+      <div className="card tappable" style={{ cursor: 'pointer' }} onClick={() => nav('/coach')}>
+        <div className="row between">
+          <div className="row" style={{ gap: 10, minWidth: 0 }}>
+            <span className="lrow-i" style={{ background: 'var(--acc)' }}><Icon name="personCircle" /></span>
+            <div style={{ minWidth: 0 }}>
+              <div className="small muted">{t('Your coach')}</div>
+              <div style={{ fontWeight: 600 }}>{user.coachName}</div>
+            </div>
+          </div>
+          <Icon name="chevronRight" className="chev" />
+        </div>
+      </div>
+    )}
+
     {!S.routines.length && !S.active && (
       <div className="card">
         <div className="row" style={{ gap: 10, marginBottom: 6 }}>
@@ -91,6 +106,7 @@ export default function Home() {
         <h2 style={{ margin: 0 }}>{t('Body weight')}</h2>
         <div className="row" style={{ gap: 8 }}>
           <Button size="sm" icon="target" style={S.targetW ? { color: 'var(--yellow)' } : undefined} onClick={goalSheet}>{S.targetW ? fmtNum(S.targetW) : t('Goal')}</Button>
+          <Button size="sm" icon="ruler" onClick={() => nav('/progress')} aria-label={t('Body metrics')}>{t('Body')}</Button>
           <Button size="sm" icon="plus" onClick={() => bwSheet()}>{t('Log')}</Button>
         </div>
       </div>

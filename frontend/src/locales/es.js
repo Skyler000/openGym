@@ -442,7 +442,7 @@ export default {
   'Use this weekly schedule': 'Usar este horario semanal',
   'Replaces your current Mon–Sun assignments.': 'Reemplaza tu asignación actual de lun–dom.',
   'Added {0} routines to your plan': 'Se añadieron {0} rutinas a tu plan',
-  'this isn’t an WinterARC plan file': 'esto no es un archivo de plan de WinterARC',
+  'this isn’t a WinterARC plan file': 'esto no es un archivo de plan de WinterARC',
   'Shared routine': 'Rutina compartida',
   'Unknown exercise': 'Ejercicio desconocido',
   'Weekly Training Plan': 'Plan de entrenamiento semanal',

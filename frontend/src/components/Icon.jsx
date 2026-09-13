@@ -112,6 +112,23 @@ const P = {
   signOut: <><path d="M14.2 4.6H7a1.9 1.9 0 0 0-1.9 1.9v11a1.9 1.9 0 0 0 1.9 1.9h7.2" /><path d="m16.8 8.4 3.6 3.6-3.6 3.6M20.4 12H10.2" /></>,
   shuffle: <><path d="M3.6 7.2h2.9c1.6 0 2.8.9 3.8 2.4l3 4.8c1 1.5 2.2 2.4 3.8 2.4h2.9M3.6 16.8h2.9c1.6 0 2.8-.9 3.8-2.4l.7-1.1M15.6 9.9l.7-1.1c1-1.5 2.2-2.4 3.8-2.4h1.9" /><path d="m17.9 4.3 2.8 2.1-2.8 2.1M17.9 14.7l2.8 2.1-2.8 2.1" /></>,
   info: <><circle cx="12" cy="12" r="8.2" /><path d="M12 11v5.4" /><circle cx="12" cy="7.9" r=".9" fill="currentColor" stroke="none" /></>,
+
+  /* ---- coaching: people, money, messaging ---- */
+  users: <><circle cx="9" cy="8.4" r="3.2" /><path d="M3.4 19.6a5.6 5.6 0 0 1 11.2 0" /><path d="M15.4 5.4a3.2 3.2 0 0 1 0 6.1M17.4 14.2a5.6 5.6 0 0 1 3.2 5.4" /></>,
+  personAdd: <><circle cx="10" cy="8" r="3.8" /><path d="M3 20.4a7 7 0 0 1 12.2-4.6M18.4 13.6v6M15.4 16.6h6" /></>,
+  rupee: <path d="M7 4.6h10M7 8.6h10M9.4 4.6c3.2 0 5 1.6 5 4s-1.8 4-5 4H7l7.6 7.2" />,
+  grid: <><rect x="4" y="4" width="6.6" height="6.6" rx="1.6" /><rect x="13.4" y="4" width="6.6" height="6.6" rx="1.6" /><rect x="4" y="13.4" width="6.6" height="6.6" rx="1.6" /><rect x="13.4" y="13.4" width="6.6" height="6.6" rx="1.6" /></>,
+  ruler: <><rect x="3.2" y="8.4" width="17.6" height="7.2" rx="1.6" /><path d="M7 8.4v2.8M10.6 8.4v4M14.2 8.4v2.8M17.8 8.4v4" /></>,
+  chat: <path d="M4.4 11.4c0-4 3.4-6.9 7.6-6.9s7.6 2.9 7.6 6.9-3.4 6.9-7.6 6.9c-1 0-2-.2-2.9-.5L5 19.3l1.1-3.5a6.3 6.3 0 0 1-1.7-4.4Z" />,
+  send: <><path d="M20.4 3.6 10.2 13.8" /><path d="M20.4 3.6 14 20.4l-3.8-6.6L3.6 10Z" /></>,
+  camera: <><path d="M4 8.6a2 2 0 0 1 2-2h1.9l1.5-2h5.2l1.5 2H18a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" /><circle cx="12" cy="13" r="3.6" /></>,
+  image: <><rect x="3.8" y="4.8" width="16.4" height="14.4" rx="2.6" /><circle cx="9" cy="10" r="1.7" /><path d="m20.2 15.4-4.6-4.4-9.8 8.2" /></>,
+  mic: <><rect x="9" y="3.6" width="6" height="10.4" rx="3" /><path d="M5.8 11a6.2 6.2 0 0 0 12.4 0M12 17.2v3.2M8.8 20.4h6.4" /></>,
+  stop: <rect x="6.5" y="6.5" width="11" height="11" rx="2.2" />,
+  paperclip: <path d="m19.2 11.3-6.9 6.9a4.4 4.4 0 0 1-6.2-6.2l7.3-7.3a2.9 2.9 0 0 1 4.1 4.1l-7.1 7.1a1.4 1.4 0 0 1-2-2l6.5-6.5" />,
+  doc: <><path d="M14 3.6H7.4a1.9 1.9 0 0 0-1.9 1.9v13a1.9 1.9 0 0 0 1.9 1.9h9.2a1.9 1.9 0 0 0 1.9-1.9V8.1Z" /><path d="M14 3.6v4.5h4.5M9 12.6h6M9 16h4" /></>,
+  smile: <><circle cx="12" cy="12" r="8.2" /><path d="M8.6 14.2a4.2 4.2 0 0 0 6.8 0" /><circle cx="9.3" cy="10" r=".9" fill="currentColor" stroke="none" /><circle cx="14.7" cy="10" r=".9" fill="currentColor" stroke="none" /></>,
+  checks: <path d="m2.8 12.4 3.6 3.6 7-7.4M10.4 15.4l.6.6 7-7.4" />,
 }
 
 // A few keys are aliases so call sites can say what they mean.

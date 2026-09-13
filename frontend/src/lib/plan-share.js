@@ -45,6 +45,9 @@ function cleanEx(e) {
   if (e.repsMin != null) o.repsMin = e.repsMin
   if (e.repsMax != null) o.repsMax = e.repsMax
   if (e.sg) o.sg = e.sg
+  // A coach's rest time and cue for the exercise travel with the plan (see api/routes/coach.js).
+  if (e.rest > 0) o.rest = e.rest
+  if (typeof e.note === 'string' && e.note.trim()) o.note = e.note.trim()
   return o
 }
 
@@ -74,7 +77,7 @@ export function buildPlanBundle(S, name) {
 export function parsePlan(raw) {
   const data = typeof raw === 'string' ? JSON.parse(raw) : raw
   if (!data || !data.opengym_plan || !Array.isArray(data.routines)) {
-    throw new Error(t('this isn’t an WinterARC plan file'))
+    throw new Error(t('this isn’t a WinterARC plan file'))
   }
   const customEx = (Array.isArray(data.customEx) ? data.customEx : []).filter(c => c && c.id)
   const known = new Set(customEx.map(c => c.id))

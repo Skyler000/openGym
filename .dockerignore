@@ -1,0 +1,11 @@
+# Build context for the images. The exercise media is mounted at runtime and ./data holds live
+# secrets (the session key, the VAPID private key, every account): neither belongs in an image,
+# and sending ~140 MB of media to the Docker daemon on every build only makes builds slow.
+.git
+media
+data
+docs/manual/img
+**/node_modules
+**/dist
+frontend/android
+frontend/ios
