@@ -7,6 +7,7 @@ import { initials } from '../../lib/chatfmt.js'
 import { accessLabel } from '../../lib/roles.js'
 import Icon from '../../components/Icon.jsx'
 import Bell from '../../components/Bell.jsx'
+import NotifyPrompt from '../../components/NotifyPrompt.jsx'
 
 // A coach's conversations, one per client: most recent first, with unread counts and who is online.
 // English-only, like the other coach screens.
@@ -29,6 +30,7 @@ export default function Inbox() {
       <Bell />
     </div>
     {error && <div className="card small" style={{ color: 'var(--red)' }}>{error}</div>}
+    <NotifyPrompt />
     {all.length > 4 && <input className="input" placeholder="Find a client" aria-label="Find a client" value={q}
       onChange={e => setQ(e.target.value)} style={{ marginBottom: 12 }} />}
 

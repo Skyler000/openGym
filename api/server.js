@@ -363,6 +363,7 @@ function readSession(req) {
   // payload (it still had to pass the HMAC, so this is belt-and-braces) and is refused outright.
   const claimed = ver === undefined ? 0 : Number(ver);
   if (!Number.isInteger(claimed) || claimed !== sessionVersion(user)) return null;
+  hub.touch(user.id);   // hub.isLooking: whether a message to them should be pushed
   return user;
 }
 function requireUser(req, res) {

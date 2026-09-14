@@ -11,6 +11,14 @@ const urlBase64ToUint8Array = b64 => {
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)))
 }
 
+// The service worker is only registered over HTTPS (main.jsx). Without it there is nothing to
+// subscribe with, even in a browser that has the push APIs.
+const registration = () => (pushSupported() ? navigator.serviceWorker.getRegistration().catch(() => null) : Promise.resolve(null))
+const currentSubscription = async () => {
+  const reg = await registration()
+  return reg ? reg.pushManager.getSubscription().catch(() => null) : null
+}
+
 export async function enablePush() {
   if (!pushSupported()) throw new Error('Push notifications are not supported in this browser')
   const perm = await Notification.requestPermission()
@@ -31,3 +39,27 @@ export async function disablePush() {
 }
 
 export const sendTestPush = () => api('/api/push/test', { method: 'POST', body: '{}' })
+
+// What this device can do about notifications, for deciding what to offer (lib/pushprompt.js).
+export async function pushEnv() {
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  const standalone = (typeof matchMedia === 'function' && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true
+  const reg = await registration()
+  const sub = reg ? await reg.pushManager.getSubscription().catch(() => null) : null
+  return { ios, standalone, supported: !!reg, permission: pushPermission(), subscribed: !!sub }
+}
+
+// Tells the server that this device's subscription belongs to whoever is signed in now. On a phone
+// shared between accounts, or after the server's data was reset, alerts would otherwise go to the
+// wrong account, or nowhere.
+export async function syncPushSubscription() {
+  const sub = await currentSubscription()
+  if (sub) await api('/api/push/subscribe', { method: 'POST', body: JSON.stringify({ subscription: sub.toJSON() }) }).catch(() => {})
+}
+
+// On signing out: this device stops receiving the account's alerts. The browser keeps its subscription,
+// so whoever signs in here next is matched to it without being asked again.
+export async function forgetPushSubscription() {
+  const sub = await currentSubscription()
+  if (sub) await api('/api/push/unsubscribe', { method: 'POST', body: JSON.stringify({ endpoint: sub.endpoint }) }).catch(() => {})
+}

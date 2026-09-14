@@ -12,6 +12,7 @@ import { isCoach } from '../../lib/roles.js'
 import { t } from '../../lib/i18n.js'
 import Icon from '../../components/Icon.jsx'
 import { Button } from '../../components/ui.jsx'
+import NotifyPrompt from '../../components/NotifyPrompt.jsx'
 
 // One conversation between a coach and a client: text, emoji, photos, voice notes and documents, with
 // read receipts and whether the other person is online. New messages and receipts arrive over the live
@@ -316,6 +317,7 @@ export default function Conversation() {
     </div>
 
     {error && <div className="card small" style={{ color: 'var(--red)' }}>{error}</div>}
+    <NotifyPrompt />
     {more && <div style={{ textAlign: 'center', margin: '4px 0 10px' }}>
       <button className="chip nocap" onClick={loadEarlier}>{t('Load earlier messages')}</button>
     </div>}

@@ -104,8 +104,9 @@ export default function chatRoutes(ctx) {
       const m = built.message;
       hub.publish(p.peer.id, 'message', m);
       hub.publish(user.id, 'message', m);   // the sender's other open tabs
-      // An open app already has the message; push is for someone who isn't looking.
-      if (!hub.isOnline(p.peer.id)) {
+      // Push unless they're looking at the app: an app on screen already has the message, but one that
+      // is closed, in the background, or frozen by the phone with its connection still open doesn't.
+      if (!hub.isLooking(p.peer.id)) {
         sendPush(p.peer.id, { title: user.name, body: preview(m), tag: 'chat-' + user.id, url: '#/chat/' + user.id }).catch(() => {});
       }
       json(res, 200, { message: m });

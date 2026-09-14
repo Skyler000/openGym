@@ -1,13 +1,12 @@
 // The live event stream from /api/events: new messages, read receipts, presence and notifications as
 // they happen. EventSource reconnects by itself after a drop, and gives up for good on a 401 — which is
 // what should happen once the account is signed out.
+//
+// The stream is open only while the app is on screen. Sent to the background it closes at once: nobody
+// is looking, so the server pushes new messages instead — and a phone can freeze a background app before
+// any delay would run out. Over HTTP/1.1 it also frees one of the few connections a browser allows.
 import { useEffect, useRef } from 'react'
 import { create } from 'zustand'
-
-// A tab left in the background lets go of its stream after this long. Nobody is looking, so they show
-// as offline and chat reaches them by push instead — and over HTTP/1.1 every open stream holds one of
-// the few connections a browser allows to one server, which a handful of tabs would otherwise use up.
-const HIDDEN_GRACE_MS = 20000
 
 export const useLive = create(set => ({
   connected: false,
@@ -46,11 +45,10 @@ const EVENTS = ['message', 'read', 'presence', 'notification']
 export function startLive() {
   if (typeof EventSource === 'undefined') return () => {}
   let es = null
-  let hiddenTimer = null
   let connections = 0
 
   const open = () => {
-    if (es) return
+    if (es || document.visibilityState === 'hidden') return
     es = new EventSource('/api/events')
     es.addEventListener('open', () => useLive.setState({ connected: true }))
     es.addEventListener('error', () => useLive.setState({ connected: false }))
@@ -75,17 +73,16 @@ export function startLive() {
     es = null
     useLive.setState({ connected: false })
   }
-  const onVisibility = () => {
-    clearTimeout(hiddenTimer)
-    if (document.visibilityState === 'hidden') hiddenTimer = setTimeout(close, HIDDEN_GRACE_MS)
-    else open()
-  }
+  const onVisibility = () => (document.visibilityState === 'hidden' ? close() : open())
 
   open()
   document.addEventListener('visibilitychange', onVisibility)
+  window.addEventListener('pagehide', close)
+  window.addEventListener('pageshow', onVisibility)
   return () => {
-    clearTimeout(hiddenTimer)
     document.removeEventListener('visibilitychange', onVisibility)
+    window.removeEventListener('pagehide', close)
+    window.removeEventListener('pageshow', onVisibility)
     close()
     useLive.setState({ presence: {} })
   }

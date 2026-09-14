@@ -38,6 +38,7 @@ import Notifications from './views/Notifications.jsx'
 import { startNotificationPolling } from './lib/notifications.js'
 import { startLive } from './lib/events.js'
 import { startChatBadge } from './lib/chat.js'
+import { syncPushSubscription } from './lib/push.js'
 import Conversation from './views/chat/Conversation.jsx'
 import Inbox from './views/chat/Inbox.jsx'
 import SAAnalytics from './views/sa/Analytics.jsx'
@@ -81,6 +82,8 @@ function Shell() {
     if (!user?.id) return
     return startLive()
   }, [user?.id])
+  // Alerts on this device go to whoever is signed in on it now.
+  useEffect(() => { if (user?.id) syncPushSubscription() }, [user?.id])
   const canChat = (isCoach(user) || isClient(user)) && isActive(user)
   useEffect(() => {
     if (!user?.id || !canChat) return

@@ -11,6 +11,7 @@ import { pct } from '../../lib/roles.js'
 import { useChatUnread } from '../../lib/chat.js'
 import Icon from '../../components/Icon.jsx'
 import { Button } from '../../components/ui.jsx'
+import NotifyPrompt from '../../components/NotifyPrompt.jsx'
 
 // A client's view of their coach: the plans they have been assigned, and how they are doing on them.
 // Adding a plan goes through the same tested merge as importing a shared plan file (plan-share.js).
@@ -82,6 +83,7 @@ export default function CoachHub() {
       </div>
     </div>
     {error && <div className="card small" style={{ color: 'var(--red)' }}>{error}</div>}
+    <NotifyPrompt />
 
     <h4 className="sec">{t('Plans from your coach')}</h4>
     {list.map(a => <div key={a.id} className="card">

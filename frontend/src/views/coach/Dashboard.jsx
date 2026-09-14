@@ -10,6 +10,7 @@ import Icon from '../../components/Icon.jsx'
 import Kpi from '../../components/Kpi.jsx'
 import Bell from '../../components/Bell.jsx'
 import BarChart from '../../components/BarChart.jsx'
+import NotifyPrompt from '../../components/NotifyPrompt.jsx'
 import { Button } from '../../components/ui.jsx'
 
 // Coach home: clients at a glance, this month's money, who needs renewing, how the roster is
@@ -43,6 +44,7 @@ export default function Dashboard() {
       </div>
     </div>}
     {error && <div className="card small" style={{ color: 'var(--red)' }}>{error}</div>}
+    <NotifyPrompt />
 
     {d && <>
       <h4 className="sec">Clients</h4>

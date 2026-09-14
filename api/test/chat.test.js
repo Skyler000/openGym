@@ -42,6 +42,22 @@ test('hub: a stream that throws on write does not stop the others', () => {
   assert.equal(ok.out.length, 1)
 })
 
+test('hub: "looking" needs an open stream and a request within the last 90 seconds', () => {
+  const hub = createHub()
+  const res = fakeRes()
+  assert.equal(hub.isLooking('u1', 0), false)
+  hub.add('u1', res)
+  hub.touch('u1', 1000)
+  assert.equal(hub.isLooking('u1', 31000), true)
+  assert.equal(hub.isLooking('u1', 91000), false)   // connected but silent: an app the phone froze
+  hub.touch('u1', 95000)
+  assert.equal(hub.isLooking('u1', 100000), true)
+  hub.remove('u1', res, 100000)
+  assert.equal(hub.isLooking('u1', 100001), false)  // closed or sent to the background
+  hub.touch('u2', 100000)
+  assert.equal(hub.isLooking('u2', 100001), false)  // requests without a stream: not in the app
+})
+
 test('kindOf sorts attachments into photos, voice notes and documents', () => {
   assert.equal(kindOf('image/png'), 'photo')
   assert.equal(kindOf('audio/webm'), 'voice')

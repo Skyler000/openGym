@@ -3,11 +3,18 @@
 //
 // In memory only. A restart drops every stream and each app reconnects by itself, so nothing that
 // must survive (messages, notifications) is ever only here.
+
+// How recently someone's app must have asked the server anything to count as looking at it. An app on
+// screen checks its notification count at least once a minute; one a phone has put to sleep stops.
+export const LOOKING_MS = 90000
+
 export function createHub() {
-  const streams = new Map()    // uid -> Set<res>
-  const lastSeen = new Map()   // uid -> ms, when their last stream closed
+  const streams = new Map()       // uid -> Set<res>
+  const lastSeen = new Map()      // uid -> ms, when their last stream closed
+  const lastRequest = new Map()   // uid -> ms, their latest signed-in request of any kind
 
   const send = (res, chunk) => { try { res.write(chunk) } catch { /* the close handler tidies up */ } }
+  const isOnline = uid => (streams.get(uid)?.size || 0) > 0
 
   return {
     // True when this is the user's first open stream: they have just come online.
@@ -39,7 +46,15 @@ export function createHub() {
     // A comment line on every stream, so proxies don't close one that has been quiet for a while.
     ping() { for (const set of streams.values()) for (const res of set) send(res, ': ping\n\n') },
 
-    isOnline: uid => (streams.get(uid)?.size || 0) > 0,
+    // Called for every signed-in request.
+    touch(uid, now = Date.now()) { lastRequest.set(uid, now) },
+
+    // Looking at the app right now: a stream is open AND the app has asked something recently. The
+    // stream alone isn't enough — a phone can freeze an app in the background and leave its connection
+    // open for minutes, and a message sent to it then still has to be pushed.
+    isLooking: (uid, now = Date.now(), withinMs = LOOKING_MS) => isOnline(uid) && now - (lastRequest.get(uid) || 0) < withinMs,
+
+    isOnline,
     lastSeen: uid => lastSeen.get(uid) || null,
     size: () => [...streams.values()].reduce((n, set) => n + set.size, 0)
   }

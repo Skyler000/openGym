@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { api } from '../lib/api.js'
+import { forgetPushSubscription } from '../lib/push.js'
 import { localTZ } from '../lib/format.js'
 import { registerCustom } from '../lib/exercises.js'
 import { DEMO, DEMO_SEEDED } from '../lib/demo.js'
@@ -128,7 +129,7 @@ export const useStore = create((set, get) => {
     },
 
     async signOut() {
-      try { await get().pushState(); await api('/api/logout', { method: 'POST', body: '{}' }) } catch (e) { /* */ }
+      try { await get().pushState(); await forgetPushSubscription(); await api('/api/logout', { method: 'POST', body: '{}' }) } catch (e) { /* */ }
       clearLocalSession()
     },
 
@@ -139,6 +140,7 @@ export const useStore = create((set, get) => {
     // would sign the user out of the one place the bump didn't reach. Caller reports the error.
     async signOutAll() {
       await get().pushState()   // never throws — stores gym_dirty and moves on when offline
+      await forgetPushSubscription()   // never throws either
       await api('/api/logout/all', { method: 'POST', body: '{}' })
       clearLocalSession()
     },
