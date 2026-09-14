@@ -40,7 +40,8 @@ So `http://localhost:8080` works on the machine running Docker, but **another de
 phone) cannot use `http://<your-LAN-ip>:8080`** — that's neither localhost nor HTTPS, so the
 passkey prompt won't appear. To use WinterARC from your phone you need a real HTTPS hostname.
 
-(You can still open it over LAN in **guest mode**, which stores data only in that browser.)
+(Over a LAN address, a super admin can switch on **guest mode**, which keeps data only in that
+browser, and `PASSWORD_LOGIN=1` allows signing in with a username and password while testing.)
 
 ## 3. Expose it over HTTPS on your own domain
 
@@ -64,6 +65,37 @@ gym.example.com {
 
 Route `gym.example.com` (HTTPS) → `web:80` (or `<docker-host>:8080`). Any reverse proxy works —
 WinterARC only needs the browser to reach it over `https://gym.example.com`.
+
+On a server that runs other apps too, set `WEB_BIND=127.0.0.1` in `.env` so the port can only be
+reached through the proxy — Docker publishes ports past host firewalls such as ufw. With nginx:
+
+```nginx
+server {
+    server_name gym.example.com;
+    client_max_body_size 20m;                       # photos, voice notes and documents in chat
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # The live event stream (chat, notifications) is one long response: pass it through unbuffered.
+    location = /api/events {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Connection '';
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_buffering off;
+        proxy_read_timeout 1h;
+    }
+}
+```
+
+`sudo certbot --nginx -d gym.example.com` then adds the certificate and the HTTPS listener.
 
 Then set your domain in `.env` and restart:
 
