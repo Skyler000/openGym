@@ -201,7 +201,14 @@ export const useStore = create((set, get) => {
           get().update(s => { s.reminder = { ...s.reminder, tz } })
         }
       } catch (e) {
-        if (e.status === 401) get().setUser(null)
+        if (e.status === 401) {
+          get().setUser(null)
+          // Guest mode is the super admin's to allow. If it is off, a device still in it goes back to the
+          // sign-in screen; what it kept stays in this browser, and moves into an account made here.
+          if (get().isGuest()) {
+            try { const cfg = await api('/api/config'); if (!cfg.guest_mode) get().setGuest(false) } catch { /* offline: leave it be */ }
+          }
+        }
       }
       set({ ready: true })
     }

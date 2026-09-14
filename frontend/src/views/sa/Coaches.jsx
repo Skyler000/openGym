@@ -79,6 +79,10 @@ export default function Coaches() {
   const open = (invites.data?.invites || []).filter(i => !i.usedBy)
   const settings = data?.settings
 
+  const setGuestMode = async on => {
+    if (await post('/api/sa/settings', { guestMode: on })) { toast(on ? 'Guest mode is on' : 'Guest mode is off'); reload() }
+  }
+
   const revoke = code => confirmSheet({
     title: 'Revoke this code?', message: code + ' will stop working.', confirmText: 'Revoke', danger: true,
     onConfirm: async () => { if (await post('/api/sa/invites/revoke', { code })) { toast('Code revoked'); invites.reload() } }
@@ -124,6 +128,14 @@ export default function Coaches() {
           onClick={() => openSheet(close => <FeesSheet settings={settings} close={close} onDone={reload} />)} />
         <Row icon="person" iconTint="var(--blue)" title="Per client" value={fmtINR(settings.clientMonthlyFee) + ' / month'} accessory="chevron"
           onClick={() => openSheet(close => <FeesSheet settings={settings} close={close} onDone={reload} />)} />
+      </div>
+
+      <h4 className="sec">Sign-in</h4>
+      <div className="sect-b">
+        <Row icon="person" iconTint="var(--grey)" title="Guest mode"
+          subtitle={settings.guestMode ? 'Anyone can use the workout tracker on their own device without an account.' : 'Only people with an account can use the app.'}>
+          <Switch checked={!!settings.guestMode} onChange={setGuestMode} />
+        </Row>
       </div>
     </>}
   </div>

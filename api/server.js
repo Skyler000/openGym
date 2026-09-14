@@ -457,7 +457,7 @@ const routes = {
   'GET /api/health': async (req, res) => json(res, 200, { ok: true, users: db.users.length }),
 
   // Public config the login screen needs before anyone is signed in.
-  'GET /api/config': async (req, res) => json(res, 200, { invite_only: db.users.length > 0, password_login: PASSWORD_LOGIN }),
+  'GET /api/config': async (req, res) => json(res, 200, { invite_only: db.users.length > 0, password_login: PASSWORD_LOGIN, guest_mode: db.settings.guestMode === true }),
 
   'GET /api/me': async (req, res) => {
     const user = readSession(req);

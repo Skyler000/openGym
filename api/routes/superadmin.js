@@ -232,6 +232,9 @@ export default function superadminRoutes(ctx) {
         if (!Number.isFinite(v) || v < 0 || v > MAX_FEE) return json(res, 400, { error: `${k} must be a whole number from 0 to ${MAX_FEE}` });
         next[k] = v;
       }
+      // "Continue without account": the workout tracker on one device, with nothing stored on the
+      // server. Off unless a super admin turns it on.
+      if (body.guestMode !== undefined) next.guestMode = body.guestMode === true;
       db.settings = next;
       saveDb();
       json(res, 200, { settings: db.settings });
