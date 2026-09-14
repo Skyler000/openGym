@@ -3,7 +3,8 @@
 //   series  [{ key, label, color }]
 //   fmt     number -> text, for the accessible summary
 //   short   number -> compact text; when given (single series), each column prints its value
-export default function BarChart({ rows, series, fmt = String, short, h = 130 }) {
+//   labelEvery  label every nth column, counted back from the newest, when they don't all fit
+export default function BarChart({ rows, series, fmt = String, short, h = 130, labelEvery = 1 }) {
   const max = Math.max(0, ...rows.flatMap(r => series.map(s => r[s.key] || 0)))
   const valued = !!short && series.length === 1
   const height = v => (max && v ? Math.max(2, v / max * 100) + '%' : '0')
@@ -13,13 +14,13 @@ export default function BarChart({ rows, series, fmt = String, short, h = 130 })
       {series.map(s => <span key={s.key}><i style={{ background: s.color }} />{s.label}</span>)}
     </div>}
     <div className={'bars' + (valued ? ' valued' : '')} style={{ height: h }} role="img" aria-label={summary}>
-      {rows.map(r => <div key={r.label} className="col">
+      {rows.map((r, i) => <div key={r.label} className="col">
         <div className="stack">
           {series.map(s => <i key={s.key} style={{ height: height(r[s.key]), background: s.color }}>
             {valued && r[s.key] > 0 && <b>{short(r[s.key])}</b>}
           </i>)}
         </div>
-        <span>{r.label}</span>
+        <span>{(rows.length - 1 - i) % labelEvery === 0 ? r.label : '\u00a0'}</span>
       </div>)}
     </div>
   </div>

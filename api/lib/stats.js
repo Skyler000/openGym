@@ -26,6 +26,13 @@ export function plannedSessions(week, startISO, endISO) {
   return n
 }
 
+// The plan a client is on today: the most recently started assignment that has not ended.
+export function assignmentOn(assignments, clientId, todayISO) {
+  return assignments
+    .filter(a => a.clientId === clientId && a.start <= todayISO && (!a.end || a.end >= todayISO))
+    .sort((a, b) => (a.start < b.start ? 1 : a.start > b.start ? -1 : b.created - a.created))[0] || null
+}
+
 // Done against planned, counting only days that have already happened — measured against the
 // whole assignment, a four-week plan would read as failing on its first day.
 //
@@ -48,6 +55,24 @@ export function weeklyCounts(workouts, todayISO, weeks = 8) {
   const count = Object.fromEntries(keys.map(k => [k, 0]))
   for (const w of workouts || []) { const k = mondayOf(w.d); if (k in count) count[k]++ }
   return keys.map(k => ({ week: k, workouts: count[k] }))
+}
+
+// Workouts per Monday-start week across a whole roster, and how many clients trained in each.
+export function rosterWeekly(states, todayISO, weeks = 12) {
+  const rows = weeklyCounts([], todayISO, weeks).map(r => ({ week: r.week, workouts: 0, activeClients: 0 }))
+  const at = Object.fromEntries(rows.map(r => [r.week, r]))
+  for (const S of states) {
+    const trained = new Set()
+    for (const w of S?.workouts || []) {
+      if (!w.d || w.d > todayISO) continue
+      const row = at[mondayOf(w.d)]
+      if (!row) continue
+      row.workouts++
+      trained.add(row.week)
+    }
+    for (const k of trained) at[k].activeClients++
+  }
+  return rows
 }
 
 export function clientSummary(state, todayISO) {

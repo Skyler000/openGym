@@ -2,7 +2,7 @@
 // and reads each client's progress. Every client lookup goes through ownClient, so a coach can only
 // ever reach clients who are linked to them.
 import { extendFrom, daysLeft, CLIENT_TERM_DAYS, CLIENT_REMIND_DAYS } from '../lib/access.js';
-import { compliance, clientSummary, bodyMetrics, monthlyReport, rosterProgress, recentActivity } from '../lib/stats.js';
+import { compliance, clientSummary, bodyMetrics, monthlyReport, rosterProgress, recentActivity, assignmentOn } from '../lib/stats.js';
 import { coachBilling, coachEarningsSeries } from '../lib/billing.js';
 import { shiftISO } from '../lib/time.js';
 
@@ -56,12 +56,7 @@ export default function coachRoutes(ctx) {
   const clientsOf = id => db.users.filter(u => role(u) === 'client' && u.coachId === id);
   const withUsedBy = i => ({ ...i, usedByName: i.usedBy ? (userById(i.usedBy) || {}).name || null : null });
 
-  // The plan a client is on today: the most recently started assignment that has not ended.
-  function currentAssignment(clientId, t) {
-    return db.assignments
-      .filter(a => a.clientId === clientId && a.start <= t && (!a.end || a.end >= t))
-      .sort((a, b) => (a.start < b.start ? 1 : a.start > b.start ? -1 : b.created - a.created))[0] || null;
-  }
+  const currentAssignment = (clientId, t) => assignmentOn(db.assignments, clientId, t);
   const assignmentView = (a, S, t) => ({
     id: a.id, planId: a.planId, planName: a.planName, category: a.category || null,
     start: a.start, end: a.end || null, note: a.note || '', created: a.created, addedAt: a.addedAt || null,

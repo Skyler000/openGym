@@ -29,7 +29,10 @@ export default function Dashboard() {
   return <div className="narrow">
     <div className="hdr">
       <div><h1>Dashboard</h1><div className="sub">{user?.name}</div></div>
-      <Bell />
+      <div className="row" style={{ gap: 8 }}>
+        <button className="iconbtn" onClick={() => nav('/c/analytics')} aria-label="Analytics"><Icon name="chartLine" /></button>
+        <Bell />
+      </div>
     </div>
 
     {dueSoon(user?.daysLeft, COACH_REMIND_DAYS) && <div className="card row" style={{ gap: 10, alignItems: 'flex-start' }}>

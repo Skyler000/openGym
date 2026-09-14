@@ -6,13 +6,13 @@ import { Button, Check } from '../../components/ui.jsx'
 
 // Assign a plan to one or more clients (or a whole group), with dates and a note. Opened from a plan
 // (planId fixed) or from a client (clientId fixed); whichever is fixed isn't asked for.
-function AssignSheet({ planId, clientId, close, onDone }) {
+function AssignSheet({ planId, clientId, groupId: startGroup, close, onDone }) {
   const plans = useApi(planId ? null : '/api/coach/plans')
   const clients = useApi(clientId ? null : '/api/coach/clients')
   const groups = useApi(clientId ? null : '/api/coach/groups')
   const [pid, setPid] = useState(planId || '')
   const [picked, setPicked] = useState(clientId ? [clientId] : [])
-  const [groupId, setGroupId] = useState('')
+  const [groupId, setGroupId] = useState(startGroup || '')
   const [start, setStart] = useState(todayISO())
   const [end, setEnd] = useState('')
   const [note, setNote] = useState('')

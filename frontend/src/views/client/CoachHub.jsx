@@ -8,6 +8,7 @@ import { exOr } from '../../lib/exercises.js'
 import { DAYN, fmtDate } from '../../lib/format.js'
 import { t } from '../../lib/i18n.js'
 import { pct } from '../../lib/roles.js'
+import { useChatUnread } from '../../lib/chat.js'
 import Icon from '../../components/Icon.jsx'
 import { Button } from '../../components/ui.jsx'
 
@@ -64,6 +65,7 @@ function PreviewSheet({ a }) {
 export default function CoachHub() {
   const nav = useNavigate()
   const user = useStore(s => s.user)
+  const unread = useChatUnread(s => s.unread)
   const openSheet = useUI(s => s.openSheet)
   const { data, error, reload } = useApi('/api/client/assignments')
   const list = data?.assignments || []
@@ -71,7 +73,13 @@ export default function CoachHub() {
   return <div className="narrow">
     <div className="hdr">
       <div><h1>{t('Coach')}</h1><div className="sub">{data?.coach?.name || user?.coachName || ''}</div></div>
-      <button className="iconbtn" onClick={() => nav('/progress')} aria-label={t('Progress')}><Icon name="ruler" /></button>
+      <div className="row" style={{ gap: 8 }}>
+        {user?.coachId && <button className="iconbtn badged" onClick={() => nav('/chat/' + user.coachId)}
+          aria-label={unread ? t('Message your coach, {0} unread', unread) : t('Message your coach')}>
+          <Icon name="chat" />{unread > 0 && <span className="badge">{unread > 99 ? '99+' : unread}</span>}
+        </button>}
+        <button className="iconbtn" onClick={() => nav('/progress')} aria-label={t('Progress')}><Icon name="ruler" /></button>
+      </div>
     </div>
     {error && <div className="card small" style={{ color: 'var(--red)' }}>{error}</div>}
 

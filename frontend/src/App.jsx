@@ -36,6 +36,12 @@ import SADashboard from './views/sa/Dashboard.jsx'
 import CoachDashboard from './views/coach/Dashboard.jsx'
 import Notifications from './views/Notifications.jsx'
 import { startNotificationPolling } from './lib/notifications.js'
+import { startLive } from './lib/events.js'
+import { startChatBadge } from './lib/chat.js'
+import Conversation from './views/chat/Conversation.jsx'
+import Inbox from './views/chat/Inbox.jsx'
+import SAAnalytics from './views/sa/Analytics.jsx'
+import CoachAnalytics from './views/coach/Analytics.jsx'
 import { isSuperAdmin, isCoach, isClient, isActive, homeRoute } from './lib/roles.js'
 
 bindUI(useUI)   // lets the shared controls open sheets without importing the store at module scope
@@ -70,6 +76,16 @@ function Shell() {
     if (!user?.id) return
     return startNotificationPolling(() => useStore.getState().refreshMe())
   }, [user?.id])
+  // The live stream serves any signed-in account; the chat badge only one that can chat right now.
+  useEffect(() => {
+    if (!user?.id) return
+    return startLive()
+  }, [user?.id])
+  const canChat = (isCoach(user) || isClient(user)) && isActive(user)
+  useEffect(() => {
+    if (!user?.id || !canChat) return
+    return startChatBadge()
+  }, [user?.id, canChat])
   // bound to the workout, not to the route — checking Stats mid-session keeps the screen on
   useWakeLock(!!S.active && S.keepAwake !== false)
 
@@ -94,16 +110,20 @@ function Shell() {
               {isSuperAdmin(user) && <>
                 <Route path="/sa" element={<SADashboard />} />
                 <Route path="/sa/coaches" element={<SACoaches />} />
+                <Route path="/sa/analytics" element={<SAAnalytics />} />
                 <Route path="/sa/coach/:id" element={<SACoachDetail />} />
               </>}
               {isCoach(user) && <>
                 <Route path="/c" element={<CoachDashboard />} />
                 <Route path="/c/clients" element={<CoachClients />} />
+                <Route path="/c/chat" element={<Inbox />} />
+                <Route path="/c/analytics" element={<CoachAnalytics />} />
                 <Route path="/c/client/:id" element={<CoachClientDetail />} />
                 <Route path="/c/plans" element={<CoachPlans />} />
                 <Route path="/c/plan/:id" element={<PlanBuilder />} />
               </>}
               {isClient(user) && <Route path="/coach" element={<CoachHub />} />}
+              {(isCoach(user) || isClient(user)) && <Route path="/chat/:peer" element={<Conversation />} />}
               <Route path="/home" element={<Home />} />
               <Route path="/plan" element={<Plan />} />
               <Route path="/plan/r/:id" element={<RoutineEdit />} />

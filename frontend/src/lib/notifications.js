@@ -4,6 +4,7 @@
 import { create } from 'zustand'
 import { api } from './api.js'
 import { routeOf } from './feed.js'
+import { onLive } from './events.js'
 
 const POLL_MS = 60000
 
@@ -44,10 +45,15 @@ export function startNotificationPolling(onNew) {
 
   tick()
   const timer = setInterval(tick, POLL_MS)
+  // With the live stream up, a notification is noticed the moment it is sent; the poll is the fallback.
+  const offLive = onLive('notification', tick)
+  const offResync = onLive('resync', tick)
   document.addEventListener('visibilitychange', onVisible)
   sw?.addEventListener('message', onMessage)
   return () => {
     clearInterval(timer)
+    offLive()
+    offResync()
     document.removeEventListener('visibilitychange', onVisible)
     sw?.removeEventListener('message', onMessage)
     useNotes.getState().reset()

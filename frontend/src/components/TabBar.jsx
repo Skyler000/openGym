@@ -4,6 +4,7 @@ import { effectiveRoutine } from '../lib/history.js'
 import { todayISO } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import { isSuperAdmin, isCoach, isActive } from '../lib/roles.js'
+import { useChatUnread } from '../lib/chat.js'
 import Icon from './Icon.jsx'
 
 // One bar per role. A paused account gets no bar at all: the lock screen is the whole app for it.
@@ -13,14 +14,18 @@ export default function TabBar({ onStart }) {
   const S = useStore(s => s.S)
   const user = useStore(s => s.user)
   const isGuest = useStore(s => s.isGuest())
+  const chatUnread = useChatUnread(s => s.unread)
   if (!user && !isGuest) return null
   if (!isActive(user)) return null
   const path = loc.pathname
   const cur = path.split('/')[1] || 'home'
+  // A conversation is full screen: its composer sits where the tab bar would.
+  if (cur === 'chat') return null
 
-  const Tab = ({ on, icon, to, label }) => (
-    <button className={on ? 'on' : ''} onClick={() => nav(to)}>
+  const Tab = ({ on, icon, to, label, badge }) => (
+    <button className={on ? 'on' : ''} onClick={() => nav(to)} aria-label={badge ? `${label}, ${badge} unread` : undefined}>
       <Icon name={icon} /><span>{label}</span>
+      {badge > 0 && <span className="badge">{badge > 99 ? '99+' : badge}</span>}
     </button>
   )
 
@@ -28,14 +33,16 @@ export default function TabBar({ onStart }) {
     <nav id="tabbar">
       <Tab on={path === '/sa' || cur === 'notifications'} icon="chart" to="/sa" label="Dashboard" />
       <Tab on={path.startsWith('/sa/coach')} icon="users" to="/sa/coaches" label="Coaches" />
+      <Tab on={path === '/sa/analytics'} icon="chartLine" to="/sa/analytics" label="Analytics" />
       <Tab on={cur === 'settings'} icon="gear" to="/settings" label={t('Settings')} />
     </nav>
   )
 
   if (isCoach(user)) return (
     <nav id="tabbar">
-      <Tab on={path === '/c' || cur === 'notifications'} icon="chart" to="/c" label="Dashboard" />
+      <Tab on={path === '/c' || path === '/c/analytics' || cur === 'notifications'} icon="chart" to="/c" label="Dashboard" />
       <Tab on={path.startsWith('/c/client')} icon="users" to="/c/clients" label="Clients" />
+      <Tab on={path === '/c/chat'} icon="chat" to="/c/chat" label="Chat" badge={chatUnread} />
       <Tab on={path.startsWith('/c/plan')} icon="clipboard" to="/c/plans" label="Plans" />
       <Tab on={cur === 'settings'} icon="gear" to="/settings" label={t('Settings')} />
     </nav>
@@ -64,7 +71,7 @@ export default function TabBar({ onStart }) {
       </button>
       <Tab on={on('stats')} icon="chart" to="/stats" label={t('Stats')} />
       {coached
-        ? <Tab on={on('coach')} icon="personCircle" to="/coach" label={t('Coach')} />
+        ? <Tab on={on('coach')} icon="personCircle" to="/coach" label={t('Coach')} badge={chatUnread} />
         : <Tab on={on('library')} icon="list" to="/library" label={t('Exercises')} />}
     </nav>
   )

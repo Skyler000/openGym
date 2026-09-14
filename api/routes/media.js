@@ -20,14 +20,17 @@ export const MEDIA_MAX_BYTES = 10 * 1024 * 1024;
 const BODY_LIMIT = Math.ceil(MEDIA_MAX_BYTES * 4 / 3) + 64 * 1024;
 const ID = /^[A-Za-z0-9_-]{8,40}$/;
 
+// Who uploaded a file and for whom, or null. Chat reads it to check an attachment before sending.
+export function readMediaMeta(DATA, id) {
+  if (!ID.test(id || '')) return null;
+  try { return JSON.parse(fs.readFileSync(path.join(DATA, 'media', id + '.json'), 'utf8')); } catch { return null; }
+}
+
 export default function mediaRoutes(ctx) {
   const { json, readBody, requireUser, access, role, ownClient, rid, DATA, canChat } = ctx;
   const dir = path.join(DATA, 'media');
   fs.mkdirSync(dir, { recursive: true });
-  const readMeta = id => {
-    if (!ID.test(id || '')) return null;
-    try { return JSON.parse(fs.readFileSync(path.join(dir, id + '.json'), 'utf8')); } catch { return null; }
-  };
+  const readMeta = id => readMediaMeta(DATA, id);
 
   // The uploader can always read their own file. A chat file is readable by the other person in
   // that conversation; a progress photo by the uploader's own coach. The super admin gets neither.

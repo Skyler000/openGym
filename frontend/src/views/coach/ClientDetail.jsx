@@ -267,6 +267,7 @@ export default function ClientDetail() {
     <div className="row" style={{ gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
       <Button size="sm" variant="primary" icon="reset" onClick={() => openSheet(close => <RenewSheet client={c} fee={data.fee} close={close} onDone={reload} />)}>Renew</Button>
       <Button size="sm" icon="send" onClick={() => assignSheet({ clientId: c.id, onDone: reload })}>Assign plan</Button>
+      <Button size="sm" icon="chat" onClick={() => nav('/chat/' + c.id)}>Message</Button>
       <Button size="sm" icon="lock" onClick={toggleLock}>{c.locked ? 'Unpause' : 'Pause'}</Button>
     </div>
 

@@ -5,6 +5,7 @@ import { useApi, post, toast, copy } from '../../lib/useApi.js'
 import { accessLabel, daysText, dueSoon, pct, fmtINR, fmtDay, CLIENT_REMIND_DAYS } from '../../lib/roles.js'
 import { todayISO } from '../../lib/format.js'
 import { confirmSheet } from '../../sheets.jsx'
+import { GroupsSection } from './Groups.jsx'
 import Icon from '../../components/Icon.jsx'
 import { Button, Segmented } from '../../components/ui.jsx'
 
@@ -94,6 +95,8 @@ export default function Clients() {
       {data && !shown.length && <div className="empty"><div className="ico"><Icon name="users" /></div>
         {clients.length ? 'No clients match this filter.' : 'No clients yet — create an invite code to add your first.'}</div>}
     </div>
+
+    <GroupsSection clients={clients} />
 
     <h4 className="sec">Unused invite codes</h4>
     <div className="sect-b">

@@ -14,11 +14,15 @@ import { DEFAULT_FEES } from './lib/billing.js';
 import { isoDay } from './lib/time.js';
 import { planReminders } from './lib/reminders.js';
 import { lastBodyLogDay } from './lib/stats.js';
+import { createHub } from './lib/hub.js';
 import superadminRoutes from './routes/superadmin.js';
 import coachRoutes from './routes/coach.js';
 import clientRoutes from './routes/client.js';
 import mediaRoutes from './routes/media.js';
 import notificationRoutes from './routes/notifications.js';
+import chatRoutes from './routes/chat.js';
+import eventRoutes from './routes/events.js';
+import analyticsRoutes from './routes/analytics.js';
 
 const PORT = +(process.env.PORT || 3000);
 const DATA = process.env.DATA_DIR || '/data';
@@ -83,6 +87,13 @@ function readState(uid) {
 // Everything stored for an account outside db.json: its synced state and the files it uploaded.
 function removeUserData(uid) {
   try { fs.unlinkSync(stateFile(uid)); } catch {}
+  // Conversations are chat/<coachId>/<clientId>.json: a coach's whole folder, a client's one file.
+  const chatDir = path.join(DATA, 'chat');
+  const safeId = uid.replace(/[^a-zA-Z0-9_-]/g, '');
+  if (safeId) {
+    try { fs.rmSync(path.join(chatDir, safeId), { recursive: true, force: true }); } catch {}
+    try { for (const d of fs.readdirSync(chatDir)) fs.rmSync(path.join(chatDir, d, safeId + '.json'), { force: true }); } catch {}
+  }
   const dir = path.join(DATA, 'media');
   let files = [];
   try { files = fs.readdirSync(dir).filter(f => f.endsWith('.json')); } catch { return; }
@@ -160,7 +171,17 @@ async function sendPush(userId, payload) {
 // An in-app notification (kept, and shown in the app's feed) plus a push to any subscribed device.
 // Push needs HTTPS and a service worker, so the feed is the one that always arrives.
 const NOTIFY_KEEP = 100;
-let publishEvent = () => {};   // replaced once the live event stream is wired up
+const hub = createHub();
+const publishEvent = (uid, event, data) => hub.publish(uid, event, data);
+setInterval(() => hub.ping(), 25000).unref();
+// Tells the people someone chats with that they have come online or gone offline.
+function onPresence(user, online) {
+  const r = role(user);
+  const partners = r === 'coach' ? db.users.filter(u => u.coachId === user.id).map(u => u.id)
+    : r === 'client' && user.coachId ? [user.coachId] : [];
+  const data = { id: user.id, online, lastSeen: online ? null : hub.lastSeen(user.id) };
+  for (const id of partners) hub.publish(id, 'presence', data);
+}
 function notify(userId, { type, title, body, url }, { save = true } = {}) {
   const n = { id: rid(), userId, type, title, body: body || '', url: url || null, created: Date.now(), read: false };
   db.notifications.push(n);
@@ -610,10 +631,12 @@ const ctx = {
   db, DATA, ADMIN_UIDS, TZ_OFFSET_MIN,
   json, readBody, saveDb, readState, rid, today,
   readSession, requireUser, requireRole, role, access, publicUser, userById, ownClient, canChat,
-  notify, sendPush, livePresence, newInviteCode, removeUserData, runReminders
+  notify, sendPush, livePresence, newInviteCode, removeUserData, runReminders,
+  hub, onPresence, publishEvent
 };
 Object.assign(routes,
-  superadminRoutes(ctx), coachRoutes(ctx), clientRoutes(ctx), mediaRoutes(ctx), notificationRoutes(ctx));
+  superadminRoutes(ctx), coachRoutes(ctx), clientRoutes(ctx), mediaRoutes(ctx), notificationRoutes(ctx),
+  chatRoutes(ctx), eventRoutes(ctx), analyticsRoutes(ctx));
 
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
