@@ -53,7 +53,11 @@ export default function TabBar({ onStart }) {
   const on = k => cur === k || (cur === 'history' && k === 'stats') || ((cur === 'settings' || cur === 'notifications') && k === 'home') ||
     (cur === 'progress' && k === (coached ? 'coach' : 'stats')) || (coached && cur === 'library' && k === 'plan')
 
+  // On the workout screen itself there is nothing to resume: the button shows that this is the
+  // running workout, and a tap goes back to the top of it instead of seeming to do nothing.
+  const onWorkout = cur === 'workout' && !!S.active
   const startWorkout = () => {
+    if (onWorkout) { window.scrollTo({ top: 0, behavior: 'smooth' }); return }
     if (!S.active) {
       const r = effectiveRoutine(S, todayISO())
       if (r && r.ex.length) { onStart(r.id); return }
@@ -65,9 +69,9 @@ export default function TabBar({ onStart }) {
     <nav id="tabbar">
       <Tab on={on('home')} icon="house" to="/home" label={t('Home')} />
       <Tab on={on('plan')} icon="calendar" to="/plan" label={t('Plan')} />
-      <button className={'start' + (S.active ? ' rec' : '')} onClick={startWorkout}>
-        <span className="cir"><Icon name={S.active ? 'play' : 'dumbbell'} /></span>
-        <span>{S.active ? t('Resume') : t('Start')}</span>
+      <button className={'start' + (S.active ? ' rec' : '')} onClick={startWorkout} aria-current={onWorkout ? 'page' : undefined}>
+        <span className="cir"><Icon name={S.active && !onWorkout ? 'play' : 'dumbbell'} /></span>
+        <span>{onWorkout ? t('Workout') : S.active ? t('Resume') : t('Start')}</span>
       </button>
       <Tab on={on('stats')} icon="chart" to="/stats" label={t('Stats')} />
       {coached

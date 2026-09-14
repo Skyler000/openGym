@@ -192,6 +192,7 @@ function BwSheet({ required, onDone, close }) {
     {required && <>
       <div style={{ height: 8 }} /><Button variant="ghost" className="dim" onClick={() => { close(); onDone && onDone(null) }}>{t('Start without weighing in')}</Button>
       <div style={{ height: 2 }} /><Button variant="ghost" className="dim" icon="reset" onClick={() => { close(); nav('/workout') }}>{t('Choose a different workout')}</Button>
+      <div style={{ height: 2 }} /><Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
     </>}
     {!required && recent.length > 0 && <>
       <h4 className="sec">{t('Recent weigh-ins')}</h4>
@@ -205,9 +206,10 @@ function BwSheet({ required, onDone, close }) {
     </>}
   </>
 }
+// Not locked, even before a workout: closing it starts nothing and loses nothing, and a sheet that
+// won't go away reads as the app being stuck.
 export function bwSheet(opts = {}) {
-  const h = ui().openSheet(close => <BwSheet {...opts} close={close} />, { locked: !!opts.required })
-  return h
+  return ui().openSheet(close => <BwSheet {...opts} close={close} />)
 }
 
 /* ============================ import from another app ============================ */
