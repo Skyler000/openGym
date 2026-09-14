@@ -15,6 +15,7 @@ import { isoDay } from './lib/time.js';
 import { planReminders } from './lib/reminders.js';
 import { lastBodyLogDay } from './lib/stats.js';
 import { createHub } from './lib/hub.js';
+import { hashPassword, verifyPassword, normalizeLogin, loginProblem, passwordProblem, createLimiter, DUMMY_HASH } from './lib/password.js';
 import superadminRoutes from './routes/superadmin.js';
 import coachRoutes from './routes/coach.js';
 import clientRoutes from './routes/client.js';
@@ -40,6 +41,9 @@ const TZ_OFFSET_MIN = process.env.TZ_OFFSET_MIN === undefined || process.env.TZ_
 // internet don't want the same number. Only affects cookies minted from now on — the expiry is
 // baked into each cookie when it's issued, so lowering this never cuts an existing session short.
 const SESSION_DAYS = Math.max(1, +(process.env.SESSION_DAYS || 90) || 90);
+// Username-and-password sign-in beside passkeys, for devices and browsers where passkeys can't work
+// (anything not on HTTPS or localhost). Off unless set: over plain HTTP a password travels unencrypted.
+const PASSWORD_LOGIN = /^(1|true|yes|on)$/i.test(process.env.PASSWORD_LOGIN || '');
 const MAX_BODY = 5 * 1024 * 1024;
 // Secure cookies require HTTPS; over plain http://localhost the flag would drop the cookie
 const SECURE = /^https:/i.test(ORIGIN) ? ' Secure;' : '';
@@ -68,7 +72,7 @@ const ownClient = (coach, id) => { const u = userById(id); return u && role(u) =
 // their coach pays for their access, and that arrangement is the coach's to explain.
 function publicUser(u) {
   const r = role(u);
-  const out = { id: u.id, name: u.name, role: r, admin: r === 'superadmin', access: access(u) };
+  const out = { id: u.id, name: u.name, role: r, admin: r === 'superadmin', access: access(u), login: u.login || null, hasPassword: !!u.pw };
   if (r === 'coach') { out.paidUntil = u.paidUntil || null; out.daysLeft = daysLeft(u.paidUntil, Date.now()); }
   if (r === 'client') { const c = userById(u.coachId); out.coachId = u.coachId || null; out.coachName = c ? c.name : null; }
   return out;
@@ -126,6 +130,41 @@ function inviteProblem(code) {
     if (!coach || access(coach) !== 'active') return 'this invite is not active right now — ask your coach';
   }
   return null;
+}
+
+// Creates an account and burns the invite that allowed it. The invite decides the role and who pays:
+// a coach invite from the super admin, or a client invite from a coach, which links the client to that
+// coach. Only the very first account on an empty instance needs no invite; it becomes the super admin.
+// Both ways of signing up come through here, and the invite is re-checked at this last moment, since it
+// may have been used or revoked since it was first entered.
+function createAccount(uid, name, code) {
+  const bootstrap = db.users.length === 0;
+  const problem = inviteProblem(code);
+  if (problem) return { error: problem };
+  const now = Date.now();
+  const user = { id: uid, name, created: new Date(now).toISOString() };
+  if (bootstrap) {
+    user.admin = true;
+  } else {
+    const invite = db.invites.find(i => i.code === code && !i.usedBy && !i.revoked);
+    user.invitedBy = invite.code; invite.usedBy = user.id; invite.usedAt = user.created;
+    if (invite.kind === 'coach') {
+      user.role = 'coach';
+      if (invite.prepaid !== false) {
+        user.paidUntil = extendFrom(null, now, COACH_TERM_DAYS);
+        db.ledger.push({ id: rid(), type: 'coach_annual', coachId: user.id, amount: db.settings.coachAnnualFee, periodStart: now, periodEnd: user.paidUntil, created: now, recordedBy: invite.createdBy || null, settled: true, settledAt: now, note: 'First year, recorded with the invite' });
+      }
+    } else {
+      // The first month is charged to the coach the moment their invite is used: the coach chose
+      // to create that client's place when they generated the code.
+      user.role = 'client';
+      user.coachId = invite.coachId;
+      user.paidUntil = extendFrom(null, now, CLIENT_TERM_DAYS);
+      db.ledger.push({ id: rid(), type: 'client_monthly', coachId: invite.coachId, clientId: user.id, amount: db.settings.clientMonthlyFee, periodStart: now, periodEnd: user.paidUntil, created: now, recordedBy: invite.coachId, settled: false, note: 'First month, charged when the invite was used' });
+    }
+  }
+  db.users.push(user);
+  return { user };
 }
 
 // Messaging runs strictly between a coach and their own client, and only while both are active.
@@ -398,12 +437,27 @@ function livePresence(uid) {
 }
 setInterval(() => { for (const [k, v] of presence) if (Date.now() - v.updatedAt > PRESENCE_TTL) presence.delete(k); }, 30000).unref();
 
+/* ---------- password sign-in ---------- */
+// The API is only reachable through nginx, which sets X-Real-IP to the address the request came from.
+const clientIp = req => String(req.headers['x-real-ip'] || req.socket.remoteAddress || '');
+// A JSON body can't be sent cross-site without a CORS preflight, which this server never answers, so a
+// form on another site can't sign someone in or out of an account behind their back.
+const isJson = req => /^application\/json\b/i.test(req.headers['content-type'] || '');
+// Failed password sign-ins allowed per 15 minutes: 10 for one username, 50 from one address.
+const userLimiter = createLimiter({ max: 10, windowMs: 15 * 60000 });
+const ipLimiter = createLimiter({ max: 50, windowMs: 15 * 60000 });
+setInterval(() => { userLimiter.sweep(); ipLimiter.sweep(); }, 5 * 60000).unref();
+function tooManyAttempts(res, keys) {
+  const wait = Math.max(...keys.map(([lim, key]) => lim.retryAfter(key)));
+  json(res, 429, { error: `Too many attempts — try again in ${Math.ceil(wait / 60)} min.` }, { 'Retry-After': String(wait) });
+}
+
 /* ---------- routes ---------- */
 const routes = {
   'GET /api/health': async (req, res) => json(res, 200, { ok: true, users: db.users.length }),
 
   // Public config the login screen needs before anyone is signed in.
-  'GET /api/config': async (req, res) => json(res, 200, { invite_only: db.users.length > 0 }),
+  'GET /api/config': async (req, res) => json(res, 200, { invite_only: db.users.length > 0, password_login: PASSWORD_LOGIN }),
 
   'GET /api/me': async (req, res) => {
     const user = readSession(req);
@@ -447,34 +501,8 @@ const routes = {
     if (!verification.verified) return json(res, 400, { error: 'not verified' });
     const { credential } = verification.registrationInfo;
     if (db.creds.find(x => x.id === credential.id)) return json(res, 409, { error: 'credential already registered' });
-    // Re-check the invite at the last moment (it may have been used or revoked since the options call),
-    // then burn it. Only the very first account on an empty instance registers without one.
-    const bootstrap = db.users.length === 0;
-    const problem = inviteProblem(c.code);
-    if (problem) return json(res, 403, { error: problem });
-    const now = Date.now();
-    const user = { id: c.uid, name: c.name, created: new Date(now).toISOString() };
-    if (bootstrap) {
-      user.admin = true;
-    } else {
-      const invite = db.invites.find(i => i.code === c.code && !i.usedBy && !i.revoked);
-      user.invitedBy = invite.code; invite.usedBy = user.id; invite.usedAt = user.created;
-      if (invite.kind === 'coach') {
-        user.role = 'coach';
-        if (invite.prepaid !== false) {
-          user.paidUntil = extendFrom(null, now, COACH_TERM_DAYS);
-          db.ledger.push({ id: rid(), type: 'coach_annual', coachId: user.id, amount: db.settings.coachAnnualFee, periodStart: now, periodEnd: user.paidUntil, created: now, recordedBy: invite.createdBy || null, settled: true, settledAt: now, note: 'First year, recorded with the invite' });
-        }
-      } else {
-        // The first month is charged to the coach the moment their invite is used: the coach chose
-        // to create that client's place when they generated the code.
-        user.role = 'client';
-        user.coachId = invite.coachId;
-        user.paidUntil = extendFrom(null, now, CLIENT_TERM_DAYS);
-        db.ledger.push({ id: rid(), type: 'client_monthly', coachId: invite.coachId, clientId: user.id, amount: db.settings.clientMonthlyFee, periodStart: now, periodEnd: user.paidUntil, created: now, recordedBy: invite.coachId, settled: false, note: 'First month, charged when the invite was used' });
-      }
-    }
-    db.users.push(user);
+    const { user, error } = createAccount(c.uid, c.name, c.code);
+    if (error) return json(res, 403, { error });
     db.creds.push({
       id: credential.id, userId: user.id,
       publicKey: Buffer.from(credential.publicKey).toString('base64url'),
@@ -522,6 +550,77 @@ const routes = {
     if (!user) return json(res, 500, { error: 'user missing' });
     if (user.disabled) return json(res, 403, { error: 'this account has been disabled' });
     json(res, 200, { user: publicUser(user) }, { 'Set-Cookie': sessionCookie(user) });
+  },
+
+  // Signing up with a username and password instead of a passkey. The invite rules are exactly the same.
+  'POST /api/register/password': async (req, res) => {
+    if (!PASSWORD_LOGIN) return json(res, 404, { error: 'not found' });
+    if (!isJson(req)) return json(res, 415, { error: 'JSON body required' });
+    const body = await readBody(req);
+    const name = String(body.name || '').trim().slice(0, 40);
+    if (!name) return json(res, 400, { error: 'name required' });
+    const login = normalizeLogin(body.login);
+    const invalid = loginProblem(login) || passwordProblem(body.password);
+    if (invalid) return json(res, 400, { error: invalid });
+    // The invite comes first: without one, nobody learns whether a username is taken, and nobody can
+    // make the server spend time hashing.
+    const code = String(body.code || '').trim().toUpperCase();
+    const problem = inviteProblem(code);
+    if (problem) return json(res, 403, { error: problem });
+    if (db.users.some(u => u.login === login)) return json(res, 409, { error: 'That username is taken — pick another.' });
+    const pw = hashPassword(body.password);
+    const { user, error } = createAccount(crypto.randomBytes(12).toString('base64url'), name, code);
+    if (error) return json(res, 403, { error });
+    user.login = login;
+    user.pw = pw;
+    saveDb();
+    json(res, 200, { user: publicUser(user) }, { 'Set-Cookie': sessionCookie(user) });
+  },
+
+  'POST /api/login/password': async (req, res) => {
+    if (!PASSWORD_LOGIN) return json(res, 404, { error: 'not found' });
+    if (!isJson(req)) return json(res, 415, { error: 'JSON body required' });
+    const body = await readBody(req);
+    const login = normalizeLogin(body.login);
+    const keys = [[userLimiter, login], [ipLimiter, clientIp(req)]];
+    if (keys.some(([lim, key]) => lim.blocked(key))) return tooManyAttempts(res, keys);
+    const user = login ? db.users.find(u => u.login === login && u.pw) : null;
+    // The hash is always checked, so an unknown username takes as long to refuse as a wrong password.
+    const ok = verifyPassword(String(body.password || ''), user ? user.pw : DUMMY_HASH) && !!user;
+    if (!ok) {
+      keys.forEach(([lim, key]) => lim.fail(key));
+      return json(res, 401, { error: 'Wrong username or password.' });
+    }
+    if (user.disabled) return json(res, 403, { error: 'this account has been disabled' });
+    userLimiter.reset(login);
+    json(res, 200, { user: publicUser(user) }, { 'Set-Cookie': sessionCookie(user) });
+  },
+
+  // Sets or changes the signed-in account's username and password. Changing a password needs the
+  // current one; adding one to a passkey account needs only the passkey's session. Every other
+  // session on the account ends, and this one carries on with a fresh cookie.
+  'POST /api/account/password': async (req, res) => {
+    if (!PASSWORD_LOGIN) return json(res, 404, { error: 'not found' });
+    const user = requireUser(req, res); if (!user) return;
+    if (!isJson(req)) return json(res, 415, { error: 'JSON body required' });
+    const body = await readBody(req);
+    const login = body.login === undefined ? user.login : normalizeLogin(body.login);
+    const invalid = loginProblem(login) || passwordProblem(body.password);
+    if (invalid) return json(res, 400, { error: invalid });
+    if (db.users.some(u => u !== user && u.login === login)) return json(res, 409, { error: 'That username is taken — pick another.' });
+    if (user.pw) {
+      const keys = [[userLimiter, user.login], [ipLimiter, clientIp(req)]];
+      if (keys.some(([lim, key]) => lim.blocked(key))) return tooManyAttempts(res, keys);
+      if (!verifyPassword(String(body.current || ''), user.pw)) {
+        keys.forEach(([lim, key]) => lim.fail(key));
+        return json(res, 403, { error: 'Your current password is wrong.' });
+      }
+    }
+    user.login = login;
+    user.pw = hashPassword(body.password);
+    user.sv = sessionVersion(user) + 1;
+    saveDb();
+    json(res, 200, { ok: true, user: publicUser(user) }, { 'Set-Cookie': sessionCookie(user) });
   },
 
   'POST /api/logout': async (req, res) => json(res, 200, { ok: true }, { 'Set-Cookie': clearCookie }),

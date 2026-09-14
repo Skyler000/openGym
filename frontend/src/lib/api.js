@@ -56,6 +56,14 @@ export async function passkeyRegister(name, code) {
   const res = await api('/api/register/verify', { method: 'POST', body: JSON.stringify({ cid, credential: credToJSON(cred) }) })
   return res.user
 }
+// Username and password: offered only when the server has PASSWORD_LOGIN on (/api/config says so).
+const postJSON = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body) })
+export const passwordLogin = async (login, password) => (await postJSON('/api/login/password', { login, password })).user
+export const passwordRegister = async ({ name, login, password, code }) =>
+  (await postJSON('/api/register/password', { name, login, password, code: code || '' })).user
+export const setAccountPassword = async ({ login, password, current }) =>
+  (await postJSON('/api/account/password', { login, password, current })).user
+
 export async function passkeyLogin() {
   const { cid, options } = await api('/api/login/options', { method: 'POST', body: '{}' })
   const cred = await navigator.credentials.get({ publicKey: toRequestOptions(options) })

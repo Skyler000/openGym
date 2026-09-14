@@ -134,7 +134,16 @@ Read this before hosting WinterARC for anyone other than yourself.
   nginx listens on `:80` (`web/nginx.conf`); TLS is your reverse proxy's job. Without it,
   browsers won't do passkeys at all (except on `http://localhost`) and the session cookie is sent
   in the clear.
-- **No rate limiting anywhere.** Nothing throttles logins, registrations or writes, and
+- **Password sign-in is weaker than passkeys, and off by default.** With `PASSWORD_LOGIN` set, an
+  account can also have a username and password (scrypt-hashed with a salt each, compared in
+  constant time; an unknown username is refused as slowly as a wrong password). A password can be
+  phished, guessed or reused elsewhere, and over plain HTTP it crosses the network unencrypted —
+  turn it on for testing on a network you trust, or only behind HTTPS. Changing a password signs
+  out every other session on the account. Signing up this way needs a valid invite exactly like a
+  passkey does, and the invite is checked before anything else is revealed.
+- **Almost no rate limiting.** Only password sign-in is throttled: 10 failed attempts per username
+  and 50 per address in 15 minutes, kept in memory, so a restart resets them. Nothing throttles
+  passkey logins, registrations or writes, and
   `POST /api/register/options` still answers whether an invite code is valid
   (`api/server.js:272`), so an invite-only instance on the open internet should have a rate limit
   in front of it. New invite codes are 16 hex characters — 64 bits (`api/server.js:525`) — which

@@ -1047,3 +1047,8 @@ h4.sec{
 .sending{text-align:center;margin-bottom:6px}
 .rec-dot{width:10px;height:10px;border-radius:50%;background:var(--red);flex:none;animation:recpulse 1s infinite}
 @keyframes recpulse{50%{opacity:.25}}
+
+/* Sign-in: the username-and-password form, and the "or" between it and the passkey button. */
+.pw-form{display:flex;flex-direction:column;gap:10px;text-align:left}
+.or{display:flex;align-items:center;gap:12px;color:var(--label-3);font-size:13px;margin:4px 0 14px}
+.or::before,.or::after{content:'';flex:1;height:1px;background:var(--sep)}

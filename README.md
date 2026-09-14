@@ -163,6 +163,7 @@ All via `.env` (see `.env.example`):
 | `WEB_PORT`    | Host port for the web UI                             | `8080`                  |
 | `RP_NAME`     | Name shown in the passkey prompt                     | `WinterARC`               |
 | `ADMIN_UIDS`  | Extra super admin user ids (the first account already is one) | *(none)*       |
+| `PASSWORD_LOGIN` | Also allow username + password sign-in, for devices without passkeys | *(off)* |
 | `TZ_OFFSET_MIN` | Day and month boundaries for billing, in minutes from UTC | `330` (IST)   |
 
 Every account after the first needs an invite code, whichever way it signs up.
