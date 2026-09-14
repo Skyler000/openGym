@@ -408,17 +408,20 @@ function json(res, code, obj, extraHeaders) {
   res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...(extraHeaders || {}) });
   res.end(body);
 }
+// Rejections carry an HTTP status so the request handler answers with a client error (a bad body is
+// the caller's fault, not the server's) instead of a blanket 500. `too large` destroys the socket, so
+// its response may not reach the caller, but the status keeps it out of the error log either way.
 function readBody(req, limit = MAX_BODY) {
   return new Promise((resolve, reject) => {
     let size = 0; const chunks = [];
     req.on('data', d => {
       size += d.length;
-      if (size > limit) { reject(new Error('body too large')); req.destroy(); return; }
+      if (size > limit) { reject(Object.assign(new Error('the request is too large'), { status: 413 })); req.destroy(); return; }
       chunks.push(d);
     });
     req.on('end', () => {
       try { resolve(chunks.length ? JSON.parse(Buffer.concat(chunks).toString('utf8')) : {}); }
-      catch { reject(new Error('bad json')); }
+      catch { reject(Object.assign(new Error('the request body is not valid JSON'), { status: 400 })); }
     });
     req.on('error', reject);
   });
@@ -745,7 +748,10 @@ http.createServer(async (req, res) => {
   if (!handler) return json(res, 404, { error: 'not found' });
   try { await handler(req, res); }
   catch (e) {
-    console.error(key, e);
-    if (!res.headersSent) json(res, 500, { error: 'server error' });
+    // A rejection with a status is a bad request (malformed or over-sized body): answer with it and
+    // don't log it as a server fault. Everything else is unexpected — log it and return 500.
+    const code = e && e.status ? e.status : 500;
+    if (code === 500) console.error(key, e);
+    if (!res.headersSent) json(res, code, { error: code === 500 ? 'server error' : e.message });
   }
 }).listen(PORT, () => console.log(`gym-api on :${PORT} (rpID=${RP_ID}, origin=${ORIGIN})`));
