@@ -162,8 +162,10 @@ All via `.env` (see `.env.example`):
 | `ORIGIN`      | Full URL the app is served from                      | `http://localhost:8080` |
 | `WEB_PORT`    | Host port for the web UI                             | `8080`                  |
 | `RP_NAME`     | Name shown in the passkey prompt                     | `WinterARC`               |
-| `ADMIN_UIDS`  | User ids that get the admin dashboard (comma-separated) | *(none)*             |
-| `INVITE_ONLY` | Require an invite code to create a profile           | *(off)*                 |
+| `ADMIN_UIDS`  | Extra super admin user ids (the first account already is one) | *(none)*       |
+| `TZ_OFFSET_MIN` | Day and month boundaries for billing, in minutes from UTC | `330` (IST)   |
+
+Every account after the first needs an invite code, whichever way it signs up.
 
 Push notification keys are generated on first run and saved to `./data/vapid.json` — nothing to set.
 
