@@ -5,6 +5,7 @@ import { webauthnOK, passkeyLogin, passkeyRegister, passwordLogin, passwordRegis
 import { t } from '../lib/i18n.js'
 import { DEMO, REPO } from '../lib/demo.js'
 import Icon from '../components/Icon.jsx'
+import Logo from '../components/Logo.jsx'
 import { Button } from '../components/ui.jsx'
 
 // Signing in and signing up. A passkey where the browser supports one; a username and password where
@@ -149,10 +150,16 @@ export default function Login() {
     catch (e) { if (!cancelled(e)) toast(e.message || t('Sign-in failed')) }
   }
   const head = <>
-    <div style={{ fontSize: 54, display: 'flex', justifyContent: 'center', color: 'var(--acc)' }}><Icon name="dumbbell" /></div>
-    <h1 style={{ fontSize: 34, fontWeight: 700, letterSpacing: '-.028em', margin: '10px 0 4px' }}>WinterARC</h1>
+    <div style={{ display: 'flex', justifyContent: 'center' }}>
+      <div style={{ filter: 'drop-shadow(0 14px 34px rgba(48,209,88,.28))' }}><Logo size={92} /></div>
+    </div>
+    <h1 style={{ fontSize: 34, fontWeight: 700, letterSpacing: '-.028em', margin: '16px 0 4px' }}>WinterARC</h1>
   </>
-  const wrap = { display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '78vh', textAlign: 'center' }
+  // A faint lime glow behind the mark ties the sign-in screen to the icon's look.
+  const wrap = {
+    display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '78vh', textAlign: 'center',
+    background: 'radial-gradient(130% 55% at 50% 16%, color-mix(in srgb, var(--acc) 9%, transparent), transparent 72%)'
+  }
 
   // Demo build: no backend to sign in against — the only way in is the local guest profile.
   if (DEMO) return (
