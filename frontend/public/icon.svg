@@ -1,0 +1,40 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="WinterARC">
+  <!-- Source for the app icons (icon-180.png / icon-512.png), rendered full-bleed so the OS mask
+       (iOS rounding, Android maskable) never clips the mark, which sits inside the central safe zone. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0e1728"/>
+      <stop offset="1" stop-color="#05070c"/>
+    </linearGradient>
+    <linearGradient id="lime" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#1fb04a"/>
+      <stop offset="1" stop-color="#5ef08a"/>
+    </linearGradient>
+    <linearGradient id="teal" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#2aa7bd"/>
+      <stop offset="1" stop-color="#6fe3f2"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="60%" r="55%">
+      <stop offset="0" stop-color="#30d158" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#30d158" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <circle cx="256" cy="298" r="196" fill="url(#glow)"/>
+
+  <!-- back peak: teal, the "winter" cool echo -->
+  <path d="M152 348 L256 236 L360 348" fill="none" stroke="url(#teal)" stroke-width="30"
+        stroke-linecap="round" stroke-linejoin="round" opacity="0.92"/>
+
+  <!-- front peak: the bold lime ascent — reads as a mountain and an "A" -->
+  <path d="M124 352 L256 176 L388 352" fill="none" stroke="url(#lime)" stroke-width="48"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- summit spark -->
+  <path d="M256 150 l10 26 26 10 -26 10 -10 26 -10 -26 -26 -10 26 -10 z" fill="#eafff0"/>
+
+  <!-- the arc of the "winter arc" -->
+  <path d="M132 388 Q256 430 380 388" fill="none" stroke="#30d158" stroke-width="14"
+        stroke-linecap="round" opacity="0.55"/>
+</svg>
