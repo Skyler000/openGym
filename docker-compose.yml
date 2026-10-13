@@ -19,6 +19,16 @@ services:
         else
           echo "✓ Exercise media already present — skipping download."
         fi
+        if [ -z "$$(ls -A /out/img/fdb 2>/dev/null)" ]; then
+          echo "↓ Downloading free-exercise-db images (public domain, ~49 MB, one time)…"
+          git clone --depth 1 https://github.com/yuhonas/free-exercise-db /tmp/fdb
+          mkdir -p /out/img/fdb
+          cd /tmp/fdb/exercises
+          for d in */; do if [ -f "$${d}0.jpg" ]; then mkdir -p "/out/img/fdb/$${d}"; cp "$${d}0.jpg" "/out/img/fdb/$${d}0.jpg"; fi; done
+          echo "✓ free-exercise-db images ready ($$(find /out/img/fdb -name 0.jpg | wc -l))."
+        else
+          echo "✓ free-exercise-db images already present — skipping."
+        fi
     restart: "no"
 
   # Passkey auth + per-user data (Node, no framework).

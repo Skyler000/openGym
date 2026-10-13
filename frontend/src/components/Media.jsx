@@ -13,7 +13,14 @@ export default function Media({ ex, id, compact, minimizable }) {
   const [playing, setPlaying] = useState(true)
   const gifSize = useStore(s => s.S.gifSize)
   const update = useStore(s => s.update)
-  if (!ex.gif) return null
+  // No animation: a custom exercise has nothing to show; an imported one (public-domain, static photo)
+  // still has a picture, so show that without the play/pause affordance.
+  if (!ex.gif) {
+    if (!ex.img) return null
+    return <div className={'exmedia' + (compact ? ' compact' : '')} id={id}>
+      <img decoding="async" src={imgSrc(ex)} alt={ex.n} />
+    </div>
+  }
   const mini = minimizable && gifSize === 'mini'
   const toggleSize = e => { e.stopPropagation(); update(s => { s.gifSize = mini ? 'full' : 'mini' }) }
   return (

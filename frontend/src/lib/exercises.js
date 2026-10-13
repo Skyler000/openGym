@@ -1,7 +1,10 @@
-import { EXDB } from './exercises-data.js'
+import { EXDB as EXDB_BASE } from './exercises-data.js'
+import { EXDB_EXTRA } from './exercises-extra.js'
 import { t } from './i18n.js'
 
-export { EXDB }
+// The animated hasaneyldrm dataset, plus the public-domain free-exercise-db imports (static photos,
+// no animation). Both share this one schema, so everything downstream treats them the same.
+export const EXDB = [...EXDB_BASE, ...EXDB_EXTRA]
 export const EXIDX = {}
 EXDB.forEach(e => { EXIDX[e.id] = e })
 export const BODYPARTS = [...new Set(EXDB.map(e => e.bp))].sort()

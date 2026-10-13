@@ -67,3 +67,8 @@ and are **not** covered by openGym's AGPL license — they remain under that dat
 The media files are not distributed in this repository; they are downloaded from the upstream
 source on first run. If you redistribute openGym with the media included, review the upstream
 license first.
+
+Additional exercises — their ids prefixed `f`, with static photographs (no animation) served from
+`media/img/fdb/` — come from [**yuhonas/free-exercise-db**](https://github.com/yuhonas/free-exercise-db),
+released under the **Unlicense** (public domain). Those images are downloaded into `media/` at first
+run alongside the rest. The imported entries live in `frontend/src/lib/exercises-extra.js`.

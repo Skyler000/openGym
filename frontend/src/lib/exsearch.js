@@ -75,7 +75,7 @@ function indexOf(ex) {
   let idx = cache.get(ex)
   if (idx) return idx
   const name = normalize(ex.n)
-  const fields = normalize([ex.bp, ex.tg, ex.mg, ex.eq, ...(ex.sm || []), ...(ex.bp === 'cardio' ? ['cardio'] : [])].join(' '))
+  const fields = normalize([ex.bp, ex.tg, ex.mg, ex.eq, ex.cat, ...(ex.sm || []), ...(ex.bp === 'cardio' ? ['cardio'] : [])].join(' '))
   idx = { name, words: name.split(' ').filter(Boolean), fields: ' ' + fields + ' ' }
   cache.set(ex, idx)
   return idx
