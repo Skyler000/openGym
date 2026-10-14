@@ -24,6 +24,7 @@ import notificationRoutes from './routes/notifications.js';
 import chatRoutes from './routes/chat.js';
 import eventRoutes from './routes/events.js';
 import analyticsRoutes from './routes/analytics.js';
+import aiRoutes from './routes/ai.js';
 
 const PORT = +(process.env.PORT || 3000);
 const DATA = process.env.DATA_DIR || '/data';
@@ -461,7 +462,7 @@ const routes = {
   'GET /api/health': async (req, res) => json(res, 200, { ok: true, users: db.users.length }),
 
   // Public config the login screen needs before anyone is signed in.
-  'GET /api/config': async (req, res) => json(res, 200, { invite_only: db.users.length > 0, password_login: PASSWORD_LOGIN, guest_mode: db.settings.guestMode === true }),
+  'GET /api/config': async (req, res) => json(res, 200, { invite_only: db.users.length > 0, password_login: PASSWORD_LOGIN, guest_mode: db.settings.guestMode === true, ai: !!process.env.ANTHROPIC_API_KEY }),
 
   'GET /api/me': async (req, res) => {
     const user = readSession(req);
@@ -739,7 +740,7 @@ const ctx = {
 };
 Object.assign(routes,
   superadminRoutes(ctx), coachRoutes(ctx), clientRoutes(ctx), mediaRoutes(ctx), notificationRoutes(ctx),
-  chatRoutes(ctx), eventRoutes(ctx), analyticsRoutes(ctx));
+  chatRoutes(ctx), eventRoutes(ctx), analyticsRoutes(ctx), aiRoutes(ctx));
 
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
