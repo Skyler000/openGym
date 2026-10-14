@@ -56,7 +56,7 @@ export function systemPrompt(req, candidates) {
 - Use ONLY exercises from the list below, referenced by their exact id. Never invent ids or names.
 - Build exactly ${req.perWeek} training day(s) per week and map them onto weekdays in "week".
 - Choose sets, reps and rest that fit the goal and experience; put compound lifts first.
-- Keep each routine focused (about 4-7 exercises). Give the plan a short name and a sentence or two of notes.
+- Keep each routine focused (about 4-7 exercises). Name each routine briefly (1-4 words), e.g. "Push", "Pull", "Legs" or "Upper Body" — not a long description. Give the plan a short name and a sentence or two of notes.
 - This is general fitness guidance, not medical advice.`;
   return [
     { type: 'text', text: instructions },

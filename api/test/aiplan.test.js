@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { toPlan, candidateLines, userMessage, PLAN_TOOL } from '../lib/aiplan.js'
+import { toPlan, candidateLines, userMessage, systemPrompt, PLAN_TOOL } from '../lib/aiplan.js'
 
 let n = 0
 const rid = () => 'r' + (++n)
@@ -69,4 +69,11 @@ test('candidateLines and userMessage are compact and complete', () => {
 test('the tool schema restricts the category to the real plan list', () => {
   assert.ok(PLAN_TOOL.input_schema.properties.category.enum.includes('Muscle Building'))
   assert.equal(PLAN_TOOL.name, 'create_plan')
+})
+
+test('the system prompt asks for short routine names and caches the exercise list', () => {
+  const sys = systemPrompt({ perWeek: 3 }, C)
+  assert.match(sys[0].text, /name each routine briefly/i)       // keeps pill labels readable
+  assert.match(sys[0].text, /3 training day/)                   // honours the requested day count
+  assert.equal(sys[1].cache_control.type, 'ephemeral')          // the big list is cached
 })
