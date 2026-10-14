@@ -85,6 +85,19 @@ test('an invented exercise with an unknown body part is filed under a safe defau
   assert.equal(p.bundle.customEx[0].bp, 'waist')                  // 'elbow' isn't a body part -> default
 })
 
+test('the tool description does not cap the plan to the provided list', () => {
+  // Regression: a stray "only from the provided list" here overrides the system prompt and stops
+  // the model from ever inventing an exercise, however the prompt is worded.
+  assert.doesNotMatch(PLAN_TOOL.description, /\bonly\b/i)
+  assert.match(PLAN_TOOL.description, /customExercises/)
+})
+
+test('the system prompt tells the model to invent rather than settle for a poor fit', () => {
+  const sys = systemPrompt({ perWeek: 3 }, C)
+  assert.match(sys[0].text, /no good match/i)
+  assert.match(sys[0].text, /customExercises/)
+})
+
 test('the tool schema lets the model declare custom exercises against the real body parts', () => {
   const ce = PLAN_TOOL.input_schema.properties.customExercises
   assert.equal(ce.type, 'array')

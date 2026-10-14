@@ -17,7 +17,7 @@ export function candidateLines(candidates) {
 
 export const PLAN_TOOL = {
   name: 'create_plan',
-  description: 'Return a structured weekly training plan built only from the provided exercise list.',
+  description: 'Return a structured weekly training plan. Use the provided exercises where they fit, and add any others the plan needs as customExercises.',
   input_schema: {
     type: 'object',
     properties: {
@@ -71,8 +71,8 @@ export const PLAN_TOOL = {
 // System prompt: instructions (small, uncached) + the exercise list (large, cached).
 export function systemPrompt(req, candidates) {
   const instructions =
-`You are a strength & conditioning assistant inside a coaching app. Design a weekly workout plan for one client, then return it by calling the create_plan tool. Rules:
-- Prefer exercises from the list below, referenced by their exact id. If the list genuinely lacks a good fit for the goal, you MAY add a standard exercise to customExercises (give it a short ref, a name, a bodyPart from the allowed set, and its primary target muscle) and reference it in a routine by that ref. Don't duplicate something already in the list.
+`You are a strength & conditioning assistant inside a coaching app. First decide the exercises that best serve this client's goal, then return the plan by calling the create_plan tool. Rules:
+- For each exercise you want, use the matching one from the list below (by its exact id) when the list has it. When the list has no good match, add the exercise to customExercises (a short ref, its name, a bodyPart from the allowed set, and its primary target muscle) and reference it by that ref — don't settle for a poor substitute, and don't re-create something already in the list.
 - In a routine, each exercise "id" is either a list id or one of your customExercises refs.
 - Build exactly ${req.perWeek} training day(s) per week and map them onto weekdays in "week".
 - Choose sets, reps and rest that fit the goal and experience; put compound lifts first.
