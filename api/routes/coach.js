@@ -44,7 +44,7 @@ export function cleanBundle(b, rid) {
   const week = {};
   for (const [d, id] of Object.entries(b.week || {})) if (/^[0-6]$/.test(d) && seen.has(id)) week[d] = id;
   const customEx = (Array.isArray(b.customEx) ? b.customEx : []).filter(c => c && c.id && c.n).slice(0, 60)
-    .map(c => ({ id: clip(c.id, 40), n: clip(c.n, 80), bp: clip(c.bp, 40), ...(c.desc ? { desc: clip(c.desc, 600) } : {}) }));
+    .map(c => ({ id: clip(c.id, 40), n: clip(c.n, 80), bp: clip(c.bp, 40), ...(c.tg ? { tg: clip(c.tg, 40) } : {}), ...(c.desc ? { desc: clip(c.desc, 600) } : {}) }));
   return { opengym_plan: 1, routines, week, customEx };
 }
 

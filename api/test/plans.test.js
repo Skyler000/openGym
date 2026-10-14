@@ -12,14 +12,15 @@ test('cleanBundle keeps known exercise fields, including a coach note and rest t
       ex: [{ id: '0025', sets: 4, reps: 8, rest: 120, note: '  pause at the bottom  ', evil: '<script>', weight: '60' }]
     }],
     week: { 1: 'r1', 9: 'r1', 3: 'nope' },
-    customEx: [{ id: 'c1', n: 'Band pull-apart', bp: 'shoulders', extra: 1 }]
+    customEx: [{ id: 'c1', n: 'Band pull-apart', bp: 'shoulders', extra: 1 }, { id: 'c2', n: 'Sled push', bp: 'upper legs', tg: 'quads' }]
   }, rid)
   // A string weight is dropped rather than coerced: a plan field that arrives as the wrong type
   // is not trusted into someone else's state.
   assert.deepEqual(b.routines[0].ex[0], { id: '0025', sets: 4, reps: 8, rest: 120, note: 'pause at the bottom' })
   assert.deepEqual(b.routines[0], { id: 'r1', name: 'Push', emoji: 'barbell', prog: 'linear', ex: b.routines[0].ex })
   assert.deepEqual(b.week, { 1: 'r1' })   // day 9 doesn't exist; day 3 names no routine in the plan
-  assert.deepEqual(b.customEx, [{ id: 'c1', n: 'Band pull-apart', bp: 'shoulders' }])
+  // A custom exercise keeps its target muscle (so the muscle map is accurate); one without stays lean.
+  assert.deepEqual(b.customEx, [{ id: 'c1', n: 'Band pull-apart', bp: 'shoulders' }, { id: 'c2', n: 'Sled push', bp: 'upper legs', tg: 'quads' }])
   assert.equal(b.opengym_plan, 1)
 })
 
