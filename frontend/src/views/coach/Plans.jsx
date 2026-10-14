@@ -4,9 +4,11 @@ import { useUI } from '../../store/useUI.js'
 import { useApi, post, toast } from '../../lib/useApi.js'
 import { PRESETS, PRESET_CATEGORIES, buildPreset } from '../../lib/presets.js'
 import { glyphOf } from '../../lib/glyphs.js'
+import { EXDB } from '../../lib/exercises.js'
+import { buildCandidates } from '../../lib/aicandidates.js'
 import { assignSheet } from './assign.jsx'
 import Icon from '../../components/Icon.jsx'
-import { Button } from '../../components/ui.jsx'
+import { Button, Segmented } from '../../components/ui.jsx'
 
 // A coach's plan library. Plans are built once and assigned to many clients; each assignment keeps
 // its own copy, so editing a plan here never changes what a client is already partway through.
@@ -28,10 +30,51 @@ function TemplateSheet({ close, onPick }) {
   </>
 }
 
+// AI draft: the coach describes the client, the model builds a plan from the coach's own exercise
+// library (buildCandidates decides what it may choose from), and it's saved through the normal path
+// so a hand-made plan and an AI one are identical from here on. Shown only when the server has AI set up.
+const EQUIP = ['barbell', 'dumbbell', 'machine', 'cable', 'body weight', 'kettlebell', 'resistance band']
+const EXPERIENCE = [{ value: 'beginner', label: 'Beginner' }, { value: 'intermediate', label: 'Intermediate' }, { value: 'advanced', label: 'Advanced' }]
+
+function GenerateSheet({ close, onDone }) {
+  const [goal, setGoal] = useState('Build muscle')
+  const [perWeek, setPerWeek] = useState(3)
+  const [experience, setExperience] = useState('intermediate')
+  const [equipment, setEquipment] = useState([])
+  const [busy, setBusy] = useState(false)
+  const toggle = e => setEquipment(x => (x.includes(e) ? x.filter(y => y !== e) : [...x, e]))
+
+  const go = async () => {
+    const candidates = buildCandidates(EXDB, { equipment })
+    if (candidates.length < 5) { toast('Pick more equipment — not enough exercises to choose from.'); return }
+    setBusy(true)
+    const r = await post('/api/ai/plan', { goal, perWeek, experience, equipment: equipment.join(', '), candidates })
+    if (!r) { setBusy(false); return }   // post() already toasted the reason
+    const saved = await post('/api/coach/plans/save', { name: r.plan.name, category: r.plan.category, notes: r.plan.notes, bundle: r.plan.bundle })
+    setBusy(false)
+    if (saved) { close(); toast('AI plan created — review and edit it'); onDone(saved.plan.id) }
+  }
+
+  return <>
+    <h3>Generate with AI</h3>
+    <div className="muted small" style={{ marginBottom: 12 }}>Describe the client and the AI drafts a plan you can edit before assigning. It only picks from your exercise library.</div>
+    <input className="input" maxLength={120} placeholder="Goal — e.g. build muscle, lose fat, get stronger" value={goal} onChange={e => setGoal(e.target.value)} />
+    <h4 className="sec">Days per week</h4>
+    <div className="chips">{[2, 3, 4, 5, 6].map(d => <button key={d} className={'chip' + (perWeek === d ? ' on' : '')} onClick={() => setPerWeek(d)}>{d}</button>)}</div>
+    <h4 className="sec">Experience</h4>
+    <Segmented options={EXPERIENCE} value={experience} onChange={setExperience} />
+    <h4 className="sec">Equipment</h4>
+    <div className="chips">{EQUIP.map(e => <button key={e} className={'chip nocap' + (equipment.includes(e) ? ' on' : '')} onClick={() => toggle(e)}>{e}</button>)}</div>
+    <div className="dim small" style={{ margin: '6px 2px 14px' }}>Leave empty to use everything.</div>
+    <Button variant="primary" icon="bolt" disabled={busy} onClick={go}>{busy ? 'Generating…' : 'Generate plan'}</Button>
+  </>
+}
+
 export default function Plans() {
   const nav = useNavigate()
   const openSheet = useUI(s => s.openSheet)
   const { data, error } = useApi('/api/coach/plans')
+  const config = useApi('/api/config')
   const [cat, setCat] = useState('')
 
   const plans = data?.plans || []
@@ -54,6 +97,7 @@ export default function Plans() {
     <div className="row" style={{ gap: 8, marginBottom: 12 }}>
       <Button size="sm" variant="primary" icon="plus" onClick={() => nav('/c/plan/new')}>New plan</Button>
       <Button size="sm" icon="sparkles" onClick={() => openSheet(close => <TemplateSheet close={close} onPick={fromTemplate} />)}>From a template</Button>
+      {config.data?.ai && <Button size="sm" icon="bolt" onClick={() => openSheet(close => <GenerateSheet close={close} onDone={id => nav('/c/plan/' + id)} />)}>Generate with AI</Button>}
     </div>
 
     {cats.length > 1 && <div className="chips" style={{ marginBottom: 10 }}>
