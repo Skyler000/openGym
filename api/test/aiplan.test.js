@@ -60,6 +60,43 @@ test('a plan with no usable exercises is an error', () => {
   assert.ok(toPlan(null, { validIds: new Set(), rid: () => 'r' }).error)
 })
 
+test('an invented exercise is built into the bundle and referenced from the routine by its real id', () => {
+  n = 0
+  const input = {
+    name: 'Legs', category: 'Muscle Building',
+    customExercises: [
+      { ref: 'x1', name: 'Nordic Curl', bodyPart: 'upper legs', target: 'Hamstrings' },
+      { ref: 'x2', name: 'Unused Move', bodyPart: 'chest', target: 'pectorals' }   // never referenced
+    ],
+    routines: [{ name: 'Legs', exercises: [{ id: '0043', sets: 4, reps: 6 }, { id: 'x1', sets: 3, reps: 8 }] }],
+    week: { 1: 0 }
+  }
+  const p = toPlan(input, { validIds: new Set(['0043']), rid })
+  assert.equal(p.bundle.customEx.length, 1)                       // the unreferenced one is dropped
+  const cx = p.bundle.customEx[0]
+  assert.match(cx.id, /^c/)                                       // custom ids carry a distinct prefix
+  assert.deepEqual({ n: cx.n, bp: cx.bp, tg: cx.tg }, { n: 'Nordic Curl', bp: 'upper legs', tg: 'hamstrings' })
+  assert.deepEqual(p.bundle.routines[0].ex.map(e => e.id), ['0043', cx.id])   // ref rewritten to the real id
+})
+
+test('an invented exercise with an unknown body part is filed under a safe default', () => {
+  n = 0
+  const p = toPlan({ name: 'x', category: 'Custom', customExercises: [{ ref: 'x1', name: 'Mystery', bodyPart: 'elbow', target: 'biceps' }], routines: [{ name: 'A', exercises: [{ id: 'x1', sets: 3, reps: 10 }] }], week: {} }, { validIds: new Set(), rid })
+  assert.equal(p.bundle.customEx[0].bp, 'waist')                  // 'elbow' isn't a body part -> default
+})
+
+test('the tool schema lets the model declare custom exercises against the real body parts', () => {
+  const ce = PLAN_TOOL.input_schema.properties.customExercises
+  assert.equal(ce.type, 'array')
+  assert.deepEqual(ce.items.required, ['ref', 'name', 'bodyPart', 'target'])
+  assert.ok(ce.items.properties.bodyPart.enum.includes('upper legs'))
+})
+
+test('the system prompt lets the model invent an exercise when the list lacks a fit', () => {
+  const sys = systemPrompt({ perWeek: 3 }, C)
+  assert.match(sys[0].text, /customExercises/)
+})
+
 test('candidateLines and userMessage are compact and complete', () => {
   assert.match(candidateLines(C), /0025\tbench press\tchest\tpectorals\tbarbell/)
   assert.match(userMessage({ goal: 'hypertrophy', perWeek: 4 }), /Goal: hypertrophy/)

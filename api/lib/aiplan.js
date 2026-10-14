@@ -6,6 +6,10 @@ import { PLAN_CATEGORIES } from '../routes/coach.js';
 const clip = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
 const clipInt = (v, lo, hi, d) => { const x = Math.round(Number(v)); return Number.isFinite(x) ? Math.max(lo, Math.min(hi, x)) : d; };
 
+// The app's body parts. A custom exercise must file under one so the muscle map can place its load.
+export const BODY_PARTS = ['chest', 'back', 'shoulders', 'upper arms', 'lower arms', 'upper legs', 'lower legs', 'waist', 'neck', 'cardio'];
+export const normBodyPart = bp => { const b = String(bp || '').toLowerCase().trim(); return BODY_PARTS.includes(b) ? b : 'waist'; };
+
 // The exercises the model picks from, as compact tab-separated lines.
 export function candidateLines(candidates) {
   return candidates.map(c => `${c.id}\t${clip(c.n, 60)}\t${clip(c.bp, 20)}\t${clip(c.tg, 20)}\t${clip(c.eq, 24)}`).join('\n');
@@ -20,6 +24,21 @@ export const PLAN_TOOL = {
       name: { type: 'string', description: 'Short plan name' },
       category: { type: 'string', enum: PLAN_CATEGORIES },
       notes: { type: 'string', description: 'One or two sentences of guidance for the client' },
+      customExercises: {
+        type: 'array',
+        description: 'Exercises NOT in the provided list that the plan needs. Reference each one in a routine by its ref.',
+        items: {
+          type: 'object',
+          properties: {
+            ref: { type: 'string', description: 'A short temporary id you assign, e.g. "x1"' },
+            name: { type: 'string' },
+            bodyPart: { type: 'string', enum: BODY_PARTS },
+            target: { type: 'string', description: 'Primary muscle worked, e.g. pectorals, lats, quads, glutes' },
+            equipment: { type: 'string' }
+          },
+          required: ['ref', 'name', 'bodyPart', 'target']
+        }
+      },
       routines: {
         type: 'array',
         items: {
@@ -31,7 +50,7 @@ export const PLAN_TOOL = {
               items: {
                 type: 'object',
                 properties: {
-                  id: { type: 'string', description: 'An exercise id taken exactly from the provided list' },
+                  id: { type: 'string', description: 'An exercise id from the provided list, or a ref you defined in customExercises' },
                   sets: { type: 'integer' }, reps: { type: 'integer' },
                   rest: { type: 'integer', description: 'Rest between sets, in seconds' },
                   note: { type: 'string', description: 'Optional cue' }
@@ -53,7 +72,8 @@ export const PLAN_TOOL = {
 export function systemPrompt(req, candidates) {
   const instructions =
 `You are a strength & conditioning assistant inside a coaching app. Design a weekly workout plan for one client, then return it by calling the create_plan tool. Rules:
-- Use ONLY exercises from the list below, referenced by their exact id. Never invent ids or names.
+- Prefer exercises from the list below, referenced by their exact id. If the list genuinely lacks a good fit for the goal, you MAY add a standard exercise to customExercises (give it a short ref, a name, a bodyPart from the allowed set, and its primary target muscle) and reference it in a routine by that ref. Don't duplicate something already in the list.
+- In a routine, each exercise "id" is either a list id or one of your customExercises refs.
 - Build exactly ${req.perWeek} training day(s) per week and map them onto weekdays in "week".
 - Choose sets, reps and rest that fit the goal and experience; put compound lifts first.
 - Keep each routine focused (about 4-7 exercises). Name each routine briefly (1-4 words), e.g. "Push", "Pull", "Legs" or "Upper Body" — not a long description. Give the plan a short name and a sentence or two of notes.
@@ -75,17 +95,28 @@ export function userMessage(req) {
   ].filter(Boolean).join('\n');
 }
 
-// Convert the tool output to { name, category, notes, bundle }. Exercises whose id wasn't offered are
-// dropped; empty routines are dropped; the week is mapped onto the surviving routines by original index.
+// Convert the tool output to { name, category, notes, bundle }. A routine exercise's id is kept only if
+// it's an offered catalogue id or a ref the model defined in customExercises (rewritten to a real id);
+// anything else is dropped. Empty routines are dropped; the week is mapped onto the surviving routines by
+// original index; only the invented exercises actually referenced end up in bundle.customEx.
 export function toPlan(input, { validIds, rid }) {
   if (!input || !Array.isArray(input.routines)) return { error: 'The AI returned an unusable plan.' };
+  // Invented exercises keyed by the ref the model uses to reference them, each given a real id.
+  const customByRef = {};
+  for (const c of (Array.isArray(input.customExercises) ? input.customExercises : []).slice(0, 30)) {
+    if (!c || !c.ref || !c.name) continue;
+    customByRef[String(c.ref)] = { id: 'c' + rid(), n: clip(c.name, 80), bp: normBodyPart(c.bodyPart), tg: clip(String(c.target || '').toLowerCase(), 40) };
+  }
+  const usedRefs = new Set();
   const routines = [];
   const byOrig = {};
   input.routines.slice(0, 14).forEach((r, oi) => {
     const ex = (Array.isArray(r && r.exercises) ? r.exercises : [])
-      .filter(e => e && validIds.has(e.id)).slice(0, 40)
+      .filter(e => e && (validIds.has(e.id) || customByRef[e.id])).slice(0, 40)
       .map(e => {
-        const o = { id: e.id, sets: clipInt(e.sets, 1, 12, 3), reps: clipInt(e.reps, 1, 100, 10) };
+        const cust = customByRef[e.id];
+        if (cust) usedRefs.add(e.id);
+        const o = { id: cust ? cust.id : e.id, sets: clipInt(e.sets, 1, 12, 3), reps: clipInt(e.reps, 1, 100, 10) };
         if (e.rest != null) o.rest = clipInt(e.rest, 0, 600, 90);
         const note = clip(e.note, 200); if (note) o.note = note;
         return o;
@@ -97,10 +128,11 @@ export function toPlan(input, { validIds, rid }) {
   for (const [d, idx] of Object.entries(input.week || {})) {
     if (/^[0-6]$/.test(String(d)) && byOrig[idx]) week[d] = byOrig[idx].id;
   }
+  const customEx = [...usedRefs].map(ref => customByRef[ref]);
   return {
     name: clip(input.name, 60) || 'AI plan',
     category: PLAN_CATEGORIES.includes(input.category) ? input.category : 'Custom',
     notes: clip(input.notes, 1000),
-    bundle: { opengym_plan: 1, routines, week, customEx: [] }
+    bundle: { opengym_plan: 1, routines, week, customEx }
   };
 }
