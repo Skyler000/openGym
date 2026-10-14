@@ -53,3 +53,9 @@ export const isBodyweightEq = idOrEx =>
 // down on the first `ex.n`.
 export const exOr = id => EXIDX[id] ||
   { id, n: t('Unknown exercise'), bp: '', tg: '', eq: '', sm: [], st: [], missing: true }
+
+// A YouTube search for an exercise's name — the "watch how it's done" link for exercises that ship
+// without an animation (custom ones, or the imported static-image ones).
+export const exerciseSearchUrl = name =>
+  'https://www.youtube.com/results?search_query=' +
+  encodeURIComponent([String(name || '').trim(), 'exercise form'].filter(Boolean).join(' '))

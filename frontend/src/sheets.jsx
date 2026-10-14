@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
-import { EXDB, EXIDX, BODYPARTS, isCardio, isBodyweightEq, allExercises, equipmentOf } from './lib/exercises.js'
+import { EXDB, EXIDX, BODYPARTS, isCardio, isBodyweightEq, allExercises, equipmentOf, exerciseSearchUrl } from './lib/exercises.js'
 import { searchExercises } from './lib/exsearch.js'
 import { fmtDate, fmtNum, fmtVol, fmtDur, durPart, todayISO, uid, exCount, DAYN, MONTHS_LONG, ACCENTS } from './lib/format.js'
 import { lastEntryFor, bestWeightFor, buildSets, effectiveRoutineId, workoutVolume, setsDone, setsDoneActive, lastBW, supersetUnits, unitOf, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, isBw, isPerSide, sideReps } from './lib/history.js'
@@ -370,6 +370,8 @@ function ExerciseDetail({ ex, close }) {
   return <>
     <h3 className="capitalize">{ex.n}</h3>
     <Media ex={ex} />
+    {/* No animation (a custom exercise, or an imported static-image one) — a one-tap search for a demo. */}
+    {!ex.gif && <a className="ytlink" href={exerciseSearchUrl(ex.n)} target="_blank" rel="noopener noreferrer"><Icon name="play" />{t('Watch how it’s done on YouTube')}</a>}
     <div className="row" style={{ gap: 6, flexWrap: 'wrap', margin: '10px 0' }}>
       <span className="tag acc">{t(ex.bp)}</span>
       {ex.tg && <span className="tag"><Icon name="target" />{t(ex.tg)}</span>}

@@ -365,6 +365,11 @@ h4.sec{
 .wsched .tag{margin-left:auto;min-width:0;max-width:72%}
 .wsched .tag .rn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 
+/* "Watch on YouTube" link in an exercise detail that has no animation. */
+.ytlink{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;padding:10px;border-radius:12px;background:var(--surface-2);color:var(--label);font-size:15px;font-weight:500;text-decoration:none}
+.ytlink .icn{color:var(--acc);font-size:17px}
+.ytlink:active{background:var(--surface-3)}
+
 /* ---------------------------------------------------------------- chips -- */
 .chips{
   display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;
