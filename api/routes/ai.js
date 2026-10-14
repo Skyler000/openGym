@@ -1,6 +1,7 @@
-// AI features. Phase 1: generate a workout plan a coach can review and save. The model only ever picks
-// from the exercises the app sends (the coach's own catalogue), and its output is rebuilt field by
-// field (toPlan) and sanitised (cleanBundle) exactly like a hand-made plan before it goes anywhere.
+// AI features. Phase 1: generate a workout plan a coach can review and save. The model designs for the
+// client's goal — reusing the exercises the app sends where they fit and inventing the rest as customs —
+// and its output is rebuilt field by field (toPlan) and sanitised (cleanBundle) exactly like a hand-made
+// plan before it goes anywhere.
 import { PLAN_CATEGORIES, cleanBundle } from './coach.js';
 import { route } from '../lib/airoute.js';
 import { toolCall } from '../lib/ai.js';

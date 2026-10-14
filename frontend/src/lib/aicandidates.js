@@ -1,6 +1,6 @@
-// The exercises offered to the AI planner. The model may only choose from this list, so it decides
-// the plan's whole vocabulary: animated exercises first (richer for the client), then the static
-// imports, filtered to the equipment the coach picked. Cardio is left out of strength planning.
+// The catalogue exercises offered to the AI planner as its preferred vocabulary: animated exercises
+// first (richer for the client), then the static imports, filtered to the equipment the coach picked.
+// Cardio is left out of strength planning. The model reuses these where they fit and invents the rest.
 // Pure, so the selection is unit-tested.
 export function buildCandidates(list, { equipment = [], limit = 200 } = {}) {
   const eq = equipment.length ? new Set(equipment) : null

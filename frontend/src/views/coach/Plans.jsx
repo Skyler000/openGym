@@ -32,9 +32,10 @@ function TemplateSheet({ close, onPick }) {
   </>
 }
 
-// AI draft: the coach describes the client, the model builds a plan from the coach's own exercise
-// library (buildCandidates decides what it may choose from), and it's saved through the normal path
-// so a hand-made plan and an AI one are identical from here on. Shown only when the server has AI set up.
+// AI draft: the coach describes the client, the model designs a plan for the goal — reusing the coach's
+// exercise library where it fits (buildCandidates decides what it's offered) and inventing the rest as
+// customs — and it's saved through the normal path so a hand-made plan and an AI one are identical from
+// here on. Shown only when the server has AI set up.
 const EQUIP = ['barbell', 'dumbbell', 'machine', 'cable', 'body weight', 'kettlebell', 'resistance band']
 const EXPERIENCE = [{ value: 'beginner', label: 'Beginner' }, { value: 'intermediate', label: 'Intermediate' }, { value: 'advanced', label: 'Advanced' }]
 
@@ -61,7 +62,7 @@ function GenerateSheet({ close, onDone }) {
 
   return <>
     <h3>Generate with AI</h3>
-    <div className="muted small" style={{ marginBottom: 12 }}>Describe the client and the AI drafts a plan you can edit before assigning. It only picks from your exercise library.</div>
+    <div className="muted small" style={{ marginBottom: 12 }}>Describe the client and the AI drafts a plan you can edit before assigning. It builds from your exercise library and adds new moves where the goal needs them.</div>
     <input className="input" maxLength={120} placeholder="Goal — e.g. build muscle, lose fat, get stronger" value={goal} onChange={e => setGoal(e.target.value)} />
     <h4 className="sec">Days per week</h4>
     <div className="chips">{[2, 3, 4, 5, 6].map(d => <button key={d} className={'chip' + (perWeek === d ? ' on' : '')} onClick={() => setPerWeek(d)}>{d}</button>)}</div>
