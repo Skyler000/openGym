@@ -359,6 +359,11 @@ h4.sec{
   font-weight:500;text-transform:capitalize;
 }
 .tag.acc{background:var(--acc-soft);color:var(--acc)}
+/* Week schedule rows: the weekday keeps its width on the left; a long routine name truncates with an
+   ellipsis on the right instead of collapsing the weekday and overflowing onto it. */
+.wsched .tt{flex:none}
+.wsched .tag{margin-left:auto;min-width:0;max-width:72%}
+.wsched .tag .rn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 
 /* ---------------------------------------------------------------- chips -- */
 .chips{
