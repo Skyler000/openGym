@@ -107,6 +107,30 @@ function matchToken(idx, tok) {
   return best
 }
 
+// The significant name words (filler dropped, singularised) as a set — order-independent, so
+// "Barbell Bench Press" and "bench press barbell" compare equal.
+function nameSet(name) {
+  const toks = normalize(name).split(' ')
+    .filter(w => w && !STOPWORDS.has(w))
+    .map(w => (w.length > 3 && w.endsWith('s')) ? w.slice(0, -1) : w)
+  return new Set(toks)
+}
+
+// A strict match for folding an AI-invented custom exercise back onto a real catalogue one: the
+// significant name words must be exactly the same set. This reuses "Barbell Bench Press" ⇄
+// "bench press barbell" but refuses "incline bench press" or a mere same-muscle neighbour — a wrong
+// reuse would quietly swap the movement, so it stays conservative. Returns the match, or null.
+export function findCatalogueMatch(name, list) {
+  const a = nameSet(name)
+  if (!a.size) return null
+  let best = null
+  for (const ex of list) {
+    const b = nameSet(ex.n)
+    if (b.size === a.size && [...a].every(x => b.has(x)) && (!best || ex.n.length < best.n.length)) best = ex
+  }
+  return best
+}
+
 // Ranked matches for `query` within `list`. Every query word must match somewhere (so "dumbbell curl"
 // excludes barbell curls), and results are ordered best-first. An empty query returns the list as-is.
 export function searchExercises(list, query) {

@@ -6,6 +6,8 @@ import { PRESETS, PRESET_CATEGORIES, buildPreset } from '../../lib/presets.js'
 import { glyphOf } from '../../lib/glyphs.js'
 import { EXDB } from '../../lib/exercises.js'
 import { buildCandidates } from '../../lib/aicandidates.js'
+import { findCatalogueMatch } from '../../lib/exsearch.js'
+import { dedupeAiCustoms } from '../../lib/plan-share.js'
 import { assignSheet } from './assign.jsx'
 import Icon from '../../components/Icon.jsx'
 import { Button, Segmented } from '../../components/ui.jsx'
@@ -50,7 +52,9 @@ function GenerateSheet({ close, onDone }) {
     setBusy(true)
     const r = await post('/api/ai/plan', { goal, perWeek, experience, equipment: equipment.join(', '), candidates })
     if (!r) { setBusy(false); return }   // post() already toasted the reason
-    const saved = await post('/api/coach/plans/save', { name: r.plan.name, category: r.plan.category, notes: r.plan.notes, bundle: r.plan.bundle })
+    // The model saw only a slice of the library; reuse any invented exercise that's really in the catalogue.
+    const bundle = dedupeAiCustoms(r.plan.bundle, name => findCatalogueMatch(name, EXDB))
+    const saved = await post('/api/coach/plans/save', { name: r.plan.name, category: r.plan.category, notes: r.plan.notes, bundle })
     setBusy(false)
     if (saved) { close(); toast('AI plan created — review and edit it'); onDone(saved.plan.id) }
   }

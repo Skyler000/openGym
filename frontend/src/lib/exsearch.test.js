@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { searchExercises, queryTokens } from './exsearch.js'
+import { searchExercises, queryTokens, findCatalogueMatch } from './exsearch.js'
 
 // A small fixture shaped like the real dataset (n, bp, tg, eq, sm), so the rules are deterministic.
 const EX = [
@@ -68,5 +68,23 @@ describe('smart exercise search', () => {
 
   it('returns nothing for a query that matches nothing', () => {
     expect(names('xyzzy')).toEqual([])
+  })
+})
+
+// A strict exact-name match (used to fold an AI-invented exercise back onto a real one). Unlike the
+// ranked search above, it must not reuse a mere same-muscle neighbour or a differently-scoped move.
+describe('findCatalogueMatch', () => {
+  it('matches the same name regardless of word order or plural', () => {
+    expect(findCatalogueMatch('Bench Press Barbell', EX)?.id).toBe('1')   // reordered
+    expect(findCatalogueMatch('barbell curls', EX)?.id).toBe('4')         // plural
+  })
+  it('refuses a differently-scoped or merely similar move', () => {
+    expect(findCatalogueMatch('Incline Barbell Bench Press', EX)).toBeNull()   // extra word
+    expect(findCatalogueMatch('Bench Press', EX)).toBeNull()                   // missing the equipment word
+    expect(findCatalogueMatch('Front Squat', EX)).toBeNull()                   // same muscle, different move
+  })
+  it('is null for an empty name or empty list', () => {
+    expect(findCatalogueMatch('', EX)).toBeNull()
+    expect(findCatalogueMatch('Back Squat', [])).toBeNull()
   })
 })

@@ -140,6 +140,34 @@ export function mergePlan(s, bundle, { schedule } = {}) {
   return { routines: bundle.routines.length }
 }
 
+/**
+ * After an AI plan comes back, fold any invented custom exercise that actually exists in the
+ * catalogue back onto the real one — the model only sees a slice of the library, so it sometimes
+ * reinvents a known move. `match(name)` returns a catalogue exercise or null; a hit rewrites the
+ * routine references to the real id and drops the custom, so media and progress tracking line up
+ * with the rest of the catalogue. Pure — the matcher is injected, so it's tested without EXDB.
+ */
+export function dedupeAiCustoms(bundle, match) {
+  const customEx = Array.isArray(bundle && bundle.customEx) ? bundle.customEx : []
+  if (!customEx.length) return bundle
+  const remap = {}
+  const kept = []
+  customEx.forEach(c => {
+    const hit = c && c.n && match(c.n)
+    if (hit && hit.id && hit.id !== c.id) remap[c.id] = hit.id
+    else kept.push(c)
+  })
+  if (!Object.keys(remap).length) return bundle
+  const routines = (bundle.routines || []).map(r => {
+    const seen = new Set()
+    const ex = (r.ex || [])
+      .map(e => (remap[e.id] ? { ...e, id: remap[e.id] } : e))
+      .filter(e => !seen.has(e.id) && seen.add(e.id))   // a remap may collide with a real pick already in the routine
+    return { ...r, ex }
+  })
+  return { ...bundle, routines, customEx: kept }
+}
+
 /* ------------------------------- printable PDF ------------------------------- */
 
 const esc = str => String(str == null ? '' : str)
