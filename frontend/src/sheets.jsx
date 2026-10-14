@@ -375,7 +375,7 @@ function ExerciseDetail({ ex, close }) {
     <div className="row" style={{ gap: 6, flexWrap: 'wrap', margin: '10px 0' }}>
       <span className="tag acc">{t(ex.bp)}</span>
       {ex.tg && <span className="tag"><Icon name="target" />{t(ex.tg)}</span>}
-      <span className="tag"><Icon name="dumbbell" />{t(ex.eq)}</span>
+      {ex.eq && <span className="tag"><Icon name="dumbbell" />{t(ex.eq)}</span>}
       {(ex.sm || []).slice(0, 3).map((s, i) => <span key={i} className="tag">{t(s)}</span>)}
     </div>
     {ex.desc && <div className="exnote">{ex.desc}</div>}
