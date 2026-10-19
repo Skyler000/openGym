@@ -5,8 +5,12 @@ import { useApi, post, toast } from '../../lib/useApi.js'
 import { accessLabel, daysText, pct, fmtINR, fmtDay } from '../../lib/roles.js'
 import { fmtDate, fmtNum, fmtVol } from '../../lib/format.js'
 import { setsDone, workoutVolume, setLabel } from '../../lib/history.js'
-import { EXIDX } from '../../lib/exercises.js'
+import { EXIDX, EXDB } from '../../lib/exercises.js'
 import { loadOfWorkouts, rankOf, MUSCLE_NAME } from '../../lib/muscles.js'
+import { buildClientBrief, briefText } from '../../lib/clientbrief.js'
+import { buildCandidates } from '../../lib/aicandidates.js'
+import { findCatalogueMatch } from '../../lib/exsearch.js'
+import { dedupeAiCustoms } from '../../lib/plan-share.js'
 import { e1rmSeries } from '../../lib/onerm.js'
 import { mediaUrl } from '../../lib/media.js'
 import { confirmSheet } from '../../sheets.jsx'
@@ -228,11 +232,47 @@ function BillingTab({ d }) {
   </>
 }
 
+// Personalized AI plan: reads this client's recent training into a brief, asks the model to design next
+// week as a progression from it, saves it as a plan and opens it for the coach to review before assigning.
+const EXPERIENCE = [{ value: 'beginner', label: 'Beginner' }, { value: 'intermediate', label: 'Intermediate' }, { value: 'advanced', label: 'Advanced' }]
+function AIPlanSheet({ close, client, state, nav }) {
+  const brief = buildClientBrief(state)
+  const [goal, setGoal] = useState('Keep progressing — build muscle and strength')
+  const [perWeek, setPerWeek] = useState(Math.min(6, Math.max(2, Math.round(brief.consistency.perWeek) || 3)))
+  const [experience, setExperience] = useState('intermediate')
+  const [busy, setBusy] = useState(false)
+
+  const go = async () => {
+    const candidates = buildCandidates(EXDB, {})
+    if (candidates.length < 5) { toast('Not enough exercises to choose from.'); return }
+    setBusy(true)
+    const r = await post('/api/ai/plan', { goal, perWeek, experience, candidates, clientBrief: briefText(brief) })
+    if (!r) { setBusy(false); return }   // post() already toasted the reason
+    const bundle = dedupeAiCustoms(r.plan.bundle, name => findCatalogueMatch(name, EXDB))
+    const saved = await post('/api/coach/plans/save', { name: r.plan.name, category: r.plan.category, notes: r.plan.notes, bundle })
+    setBusy(false)
+    if (saved) { close(); toast('Personalized plan drafted — review, then assign'); nav('/c/plan/' + saved.plan.id) }
+  }
+
+  return <>
+    <h3>Personalized AI plan</h3>
+    <div className="muted small" style={{ marginBottom: 12 }}>Drafts next week from {client.name}’s recent training — {brief.consistency.sessions} session{brief.consistency.sessions === 1 ? '' : 's'} over the last {brief.window.weeks} weeks. You review and edit it before assigning.</div>
+    <input className="input" maxLength={120} placeholder="Goal" value={goal} onChange={e => setGoal(e.target.value)} />
+    <h4 className="sec">Days per week</h4>
+    <div className="chips">{[2, 3, 4, 5, 6].map(d => <button key={d} className={'chip' + (perWeek === d ? ' on' : '')} onClick={() => setPerWeek(d)}>{d}</button>)}</div>
+    <h4 className="sec">Experience</h4>
+    <Segmented options={EXPERIENCE} value={experience} onChange={setExperience} />
+    <div style={{ height: 14 }} />
+    <Button variant="primary" icon="bolt" disabled={busy} onClick={go}>{busy ? 'Generating…' : 'Generate plan'}</Button>
+  </>
+}
+
 export default function ClientDetail() {
   const { id } = useParams()
   const nav = useNavigate()
   const openSheet = useUI(s => s.openSheet)
   const { data, error, reload } = useApi('/api/coach/client?id=' + encodeURIComponent(id))
+  const config = useApi('/api/config')
   const [tab, setTab] = useState('overview')
 
   const back = <button className="iconbtn" onClick={() => nav('/c/clients')} aria-label="Back"><Icon name="chevronLeft" /></button>
@@ -267,6 +307,7 @@ export default function ClientDetail() {
     <div className="row" style={{ gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
       <Button size="sm" variant="primary" icon="reset" onClick={() => openSheet(close => <RenewSheet client={c} fee={data.fee} close={close} onDone={reload} />)}>Renew</Button>
       <Button size="sm" icon="send" onClick={() => assignSheet({ clientId: c.id, onDone: reload })}>Assign plan</Button>
+      {config.data?.ai && <Button size="sm" icon="bolt" onClick={() => openSheet(close => <AIPlanSheet close={close} client={c} state={data.state} nav={nav} />)}>AI plan</Button>}
       <Button size="sm" icon="chat" onClick={() => nav('/chat/' + c.id)}>Message</Button>
       <Button size="sm" icon="lock" onClick={toggleLock}>{c.locked ? 'Unpause' : 'Pause'}</Button>
     </div>
