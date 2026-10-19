@@ -28,6 +28,7 @@ export default function aiRoutes(ctx) {
 
       const reqData = {
         goal: body.goal, experience: body.experience, equipment: body.equipment, focus: body.focus, notes: body.notes,
+        clientBrief: body.clientBrief,   // optional: a summary of one client's recent training to adapt to
         perWeek: Math.max(1, Math.min(7, Math.round(+body.perWeek || 3)))
       };
       const r = route('plan');

@@ -77,6 +77,7 @@ export function systemPrompt(req, candidates) {
 - Build exactly ${req.perWeek} training day(s) per week and map them onto weekdays in "week".
 - Choose sets, reps and rest that fit the goal and experience; put compound lifts first.
 - Keep each routine focused (about 4-7 exercises). Name each routine briefly (1-4 words), e.g. "Push", "Pull", "Legs" or "Upper Body" — not a long description. Give the plan a short name and a sentence or two of notes.
+- If the client's recent training is provided, make the plan personal: progress the lifts that are trending up, vary or deload ones that have stalled, cover the neglected muscles, and keep the weekly load sensible for how consistently they've been training.
 - This is general fitness guidance, not medical advice.`;
   return [
     { type: 'text', text: instructions },
@@ -91,7 +92,8 @@ export function userMessage(req) {
     `Days per week: ${req.perWeek}`,
     req.equipment ? `Equipment available: ${clip(req.equipment, 200)}` : null,
     req.focus ? `Focus: ${clip(req.focus, 200)}` : null,
-    req.notes ? `Extra notes: ${clip(req.notes, 400)}` : null
+    req.notes ? `Extra notes: ${clip(req.notes, 400)}` : null,
+    req.clientBrief ? `\nClient's recent training — design next week as a progression from this:\n${clip(req.clientBrief, 2000)}` : null
   ].filter(Boolean).join('\n');
 }
 

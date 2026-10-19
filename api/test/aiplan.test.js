@@ -116,6 +116,16 @@ test('candidateLines and userMessage are compact and complete', () => {
   assert.match(userMessage({ perWeek: 3 }), /Days per week: 3/)
 })
 
+test('a client brief, when given, is carried into the user message', () => {
+  const brief = 'Training (last 6 wks): 12 sessions\nBench: best 80kg · up'
+  assert.match(userMessage({ perWeek: 4, clientBrief: brief }), /recent training[\s\S]*Bench: best 80kg/)
+  assert.doesNotMatch(userMessage({ perWeek: 4 }), /recent training/)   // absent by default
+})
+
+test('the system prompt tells the model to personalise from a client brief', () => {
+  assert.match(systemPrompt({ perWeek: 4 }, C)[0].text, /progress the lifts that are trending up/)
+})
+
 test('the tool schema restricts the category to the real plan list', () => {
   assert.ok(PLAN_TOOL.input_schema.properties.category.enum.includes('Muscle Building'))
   assert.equal(PLAN_TOOL.name, 'create_plan')
